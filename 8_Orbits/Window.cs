@@ -6,17 +6,19 @@ using static Eight_Orbits.Program;
 using Eight_Orbits.Properties;
 using Eight_Orbits.Entities;
 using System.Collections.Generic;
+using System.Timers;
 
 namespace Eight_Orbits {
 	public partial class Window : Form {
-        //public Graphics cvs;
-        public Timer Updater = new Timer();
+		//public Graphics cvs;
+		public System.Timers.Timer Updater = new System.Timers.Timer();
 		//Timer updateVis = new Timer();
 
 		Rectangle PlayingArea;
 
 		HashSet<Keys> keydown = new HashSet<Keys>();
 		public Color MapColor = Color.FromArgb(255, 222, 222, 222);
+		
 
 		public Window() {
             InitializeComponent();
@@ -34,7 +36,6 @@ namespace Eight_Orbits {
             WindowState = FormWindowState.Maximized;
             DoubleBuffered = true;
             Cursor.Hide();
-			//Program.Map.SetOrbits();
 
 			PlayingArea = new Rectangle(0, 0, W, W / 2);
 
@@ -42,9 +43,9 @@ namespace Eight_Orbits {
 			KeyDown += Window_KeyDown;
 			KeyUp += Window_KeyUp;
 
-            Updater.Tick += Update_Math;
-			Updater.Tick += Update_Visual;
-            Updater.Interval = 10;
+            Updater.Elapsed += Update_Math;
+			if (AnimationsEnabled) Updater.Elapsed += Update_Visual;
+            Updater.Interval = 30/1000d;
 			Updater.Start();
 		}
 
@@ -138,14 +139,9 @@ namespace Eight_Orbits {
 			DrawBullet?.Invoke(ref e);
 			DrawHead?.Invoke(ref e);
 			DrawKeys?.Invoke(ref e);
-			//foreach (Visual orb in SpawnOrbs) orb.Draw(ref e);
-			//foreach (Visual orb in MapOrbs) orb.Draw(ref e);
-			//foreach (Visual blast in Blasts) blast.Draw(ref e);
-			//foreach (Keys key in Dead) HEAD[key].key.Draw(ref e);
 			AnimationControl.Draw(ref e);
 			
 			if (Leader != Keys.None && HEAD[Leader].act != Activities.DEAD) Map.DrawCrown(ref e);
-			//foreach (Keys key in Active) HEAD[key].Draw(ref e);
 
 			MVP.Draw(ref e);
         }

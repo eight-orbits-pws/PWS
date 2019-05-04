@@ -53,8 +53,8 @@ namespace Eight_Orbits {
 		public static float C;
 		public static float SZR;
 		public static int mBL = 16;
-		public static double sqrt2 { get { return Math.Sqrt(2D); } }
-		public static double PHI { get { return (Math.Sqrt(5D) + 1D) / 2D; } }
+		public static double sqrt2 = Math.Sqrt(2D);
+		public static double PHI = (Math.Sqrt(5D) + 1D) / 2D;
 		public static FontFamily FONT = FontFamily.GenericSansSerif;
 
 		public static Keys Leader = Keys.None;
@@ -62,7 +62,9 @@ namespace Eight_Orbits {
 		public static States state = States.NEWGAME;
 
 		public static bool ContrastMode = false;
-		public static float Scale { get { return SZR / Settings.Default.Scale; } }
+		private static float scale = SZR / Settings.Default.Scale;
+		public static float Scale { get { return scale; } }
+		public static bool AnimationsEnabled = false;
 
 		private static int tick = 0;
 		public static int Tick { get { return tick; } }

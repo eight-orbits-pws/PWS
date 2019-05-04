@@ -118,11 +118,11 @@ namespace Eight_Orbits {
 			this.tick = this.startTick = Program.Tick;
 			this.duration = duration;
 			this.type = type;
-			Program.OnUpdate += Calc;
+			if (Program.AnimationsEnabled) Program.OnUpdate += Calc;
 		}
 
 		public void Set(float n) {
-			if (n == e) return;
+			if (n == e || !Program.AnimationsEnabled) return;
 			this.b = c;
 			this.e = n;
 			this.startTick = Program.Tick;
@@ -140,7 +140,6 @@ namespace Eight_Orbits {
 
 		private void Calc() {
 			if (Ended()) OnEnd?.Invoke();
-
 			double p = (double) (Program.Tick - startTick) / duration;
 			p = Math.Max(0, Math.Min(p, 1));
 
