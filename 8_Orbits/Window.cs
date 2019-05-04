@@ -7,17 +7,25 @@ using Eight_Orbits.Properties;
 using Eight_Orbits.Entities;
 using System.Collections.Generic;
 using System.Timers;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Threading;
 
 namespace Eight_Orbits {
 	public partial class Window : Form {
 		//public Graphics cvs;
-		public System.Timers.Timer Updater = new System.Timers.Timer();
+		public System.Timers.Timer Updater = new System.Timers.Timer(1000D/60D);
 		//Timer updateVis = new Timer();
 
 		Rectangle PlayingArea;
 
 		HashSet<Keys> keydown = new HashSet<Keys>();
 		public Color MapColor = Color.FromArgb(255, 222, 222, 222);
+		public static long time = 0;
+		public static long Time = 0;
+		public static List<double> fps = new List<double>(64);
+
+		public Thread update;
 		
 
 		public Window() {
@@ -38,24 +46,30 @@ namespace Eight_Orbits {
             Cursor.Hide();
 
 			PlayingArea = new Rectangle(0, 0, W, W / 2);
-
+			//update = new Thread(new ThreadStart(Update));
+			//Console.WriteLine(1000d/(double)(Updater.Interval));
             Paint += Window_Paint;
 			KeyDown += Window_KeyDown;
 			KeyUp += Window_KeyUp;
 
             Updater.Elapsed += Update_Math;
 			if (AnimationsEnabled) Updater.Elapsed += Update_Visual;
-            Updater.Interval = 30/1000d;
 			Updater.Start();
+			//Updater.AutoReset = true;
 		}
 
 		private void Update_Visual(object sender, EventArgs e) {
             Invalidate();
-            Update();
 		}
 		private void Update_Math(object sender, EventArgs e) {
+			time = DateTime.Now.Millisecond;
+			if (time < Time) fps.Insert(0, 1000d/(1000L + time - Time));
+			else fps.Insert(0, 1000d/(time - Time));
+			if (fps.Count == 64) fps.RemoveAt(63);
+			if (Tick%12==0) Console.WriteLine(fps.Average());
+			Time = time;
 			Program.Update();
-			Map.Update();
+			Map?.Update();
         }
 
 		private void Window_KeyUp(object sender, KeyEventArgs e) {
@@ -94,8 +108,6 @@ namespace Eight_Orbits {
 							Active.Remove(e.KeyCode);
 							HEAD[e.KeyCode].Remove();
 							HEAD.Remove(e.KeyCode);
-
-							GC.Collect();
 						} else {
 							HEAD.Add(e.KeyCode, new Head(e.KeyCode));
 							Active.Add(e.KeyCode);
@@ -125,9 +137,11 @@ namespace Eight_Orbits {
 		}
 
         private void Window_Paint(object sender, PaintEventArgs e) {
-			e.Graphics.Flush(System.Drawing.Drawing2D.FlushIntention.Sync);
-			e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-			e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+			//e.Graphics.Flush(System.Drawing.Drawing2D.FlushIntention.Sync);
+			e.Graphics.CompositingQuality = CompositingQuality.HighSpeed;
+			e.Graphics.SmoothingMode = SmoothingMode.HighSpeed;
+			e.Graphics.InterpolationMode = InterpolationMode.Low;
+			e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
 			e.Graphics.Clear(Color.Black);
 
 			
@@ -144,6 +158,9 @@ namespace Eight_Orbits {
 			if (Leader != Keys.None && HEAD[Leader].act != Activities.DEAD) Map.DrawCrown(ref e);
 
 			MVP.Draw(ref e);
+			e.Graphics.Flush(FlushIntention.Flush);
+
+			
         }
 
 		public event PaintEvent DrawWhite;

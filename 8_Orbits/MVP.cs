@@ -147,13 +147,17 @@ namespace Eight_Orbits {
 		public static event GameEvent Winner;
 
 		public static void Show() {
-			Displaying = true;
-			Appear.Reset();
+			if (AnimationsEnabled) {
+				Displaying = true;
+				Appear.Reset();
+			} else Console.WriteLine("> " + DisplayText);
 		}
 
 		public static void Hide() {
-			Displaying = false;
-			Disappear.Reset();
+			if (AnimationsEnabled) {
+				Displaying = false;
+				Disappear.Reset();
+			}
 		}
 
 		public static void Draw(ref PaintEventArgs e) {

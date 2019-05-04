@@ -11,6 +11,9 @@ namespace Eight_Orbits {
 		//int MaxOrbs = 255;
 		int orbSpawn = 2;
 		int StartRoundTime = 0;
+		int EndRoundTime = 300;
+		int EndGameTime = 500;
+
 		byte RoundsPassed = 0;
 		BlastSpawn blastSpawn = BlastSpawn.RARE;
 
@@ -25,6 +28,8 @@ namespace Eight_Orbits {
 			MVP.Winner += EndGame;
 			this.orbits = maps.Random;
 			this.OnStartGame += SetMap;
+
+			if (!AnimationsEnabled) EndRoundTime = EndGameTime = 10;
 		}
 
 		public void SetMap() {
@@ -44,12 +49,12 @@ namespace Eight_Orbits {
 							tick = 0;
 						} break;
 
-					case Phases.ENDROUND: if (tick == 300) {
+					case Phases.ENDROUND: if (tick == EndRoundTime) {
 							StartRound();
 							tick = 0;
 						} break;
 
-					case Phases.ENDGAME: if (tick >= 500) {
+					case Phases.ENDGAME: if (tick == EndGameTime) {
 							this.StartGame();
 							tick = 0;
 						} break;
@@ -170,7 +175,8 @@ namespace Eight_Orbits {
 		public void StartRound() {
 			OnStartRound?.Invoke();
 			Clear();
-			StartRoundTime = (int) Math.Round(speed * 24 * SZR);
+			StartRoundTime = (int) Math.Round(Math.PI/speed*72*3 * SZR);
+			StartRotation = 2D*Math.PI*R.NextDouble();
 			//if (Active.Count == 1) HEAD[Active[0]].Die();
 			MVP.Hide();
 			Map.spawnOrb();
@@ -196,7 +202,7 @@ namespace Eight_Orbits {
 
 		public void EndGame() {
 			OnEndGame?.Invoke();
-			Console.WriteLine("Game ended");
+			Console.WriteLine(">> Game ended");
 			phase = Phases.ENDGAME;
 		}
 

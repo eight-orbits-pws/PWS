@@ -61,25 +61,23 @@ namespace Eight_Orbits {
 	/// new
 	/// </summary>
 	static class AnimationControl {
-		public static bool Disabled = false;
-
 		private static HashSet<Animation> Set = new HashSet<Animation>();
 		private static HashSet<Animation> End = new HashSet<Animation>();
 
 		public static void Add(Animation a) {
-			if (Disabled) return;
+			if (!Program.AnimationsEnabled) return;
 
 			Set.Add(a);
 		}
 
 		public static void Remove(Animation a) {
-			if (Disabled) return;
+			if (!Program.AnimationsEnabled) return;
 			
 			End.Add(a);
 		}
 
 		public static void Draw(ref PaintEventArgs e) {
-			if (Disabled) return;
+			if (!Program.AnimationsEnabled) return;
 
 			foreach (Animation a in Set) { a.Update(); a.Draw(ref e); }
 			foreach (Animation a in End) Set.Remove(a);
@@ -122,7 +120,7 @@ namespace Eight_Orbits {
 		}
 
 		public void Set(float n) {
-			if (n == e || !Program.AnimationsEnabled) return;
+			if (n == e) return;
 			this.b = c;
 			this.e = n;
 			this.startTick = Program.Tick;

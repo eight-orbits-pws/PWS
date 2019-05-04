@@ -19,11 +19,13 @@ namespace Eight_Orbits {
 			
 			Map.OnEndRound += MVP.Analyze;
 			Map.spawnOrb();
-			Console.WriteLine((float) (new Animatable(5, 10, 64)) == 5f);
+			//Console.WriteLine((float) (new Animatable(5, 10, 64)) == 5f);
 			
 			Application.EnableVisualStyles();
 			Application.Run(window);
 		}
+
+		public static bool AnimationsEnabled = true;
 
 		public static Window window = new Window();
 
@@ -47,15 +49,16 @@ namespace Eight_Orbits {
 		public static float OrbR { get { return 25f * Scale; } }
 		public static float BlastR { get { return 28f * Scale; } }
 		public static float BlastRange { get { return 256f * Scale; } }
-		public static double speed { get { return 5.25D * Scale; } }
+		public static double speed { get { return PHI * 5d * Scale; } }
 		public static int W;
 		public static int H;
 		public static float C;
 		public static float SZR;
-		public static int mBL = 16;
+		public static int mBL = 11;
 		public static double sqrt2 = Math.Sqrt(2D);
 		public static double PHI = (Math.Sqrt(5D) + 1D) / 2D;
 		public static FontFamily FONT = FontFamily.GenericSansSerif;
+		public static double StartRotation = 2*Math.PI*R.NextDouble(); 
 
 		public static Keys Leader = Keys.None;
 
@@ -64,7 +67,6 @@ namespace Eight_Orbits {
 		public static bool ContrastMode = false;
 		private static float scale = SZR / Settings.Default.Scale;
 		public static float Scale { get { return scale; } }
-		public static bool AnimationsEnabled = false;
 
 		private static int tick = 0;
 		public static int Tick { get { return tick; } }
@@ -78,9 +80,11 @@ namespace Eight_Orbits {
 				//Update Players
 				HashSet<Keys> check = new HashSet<Keys>();
 				HashSet<Head> toDie = new HashSet<Head>();
-				foreach (Keys a in Active) {
-					Head p = HEAD[a];
-					if (p.act == Activities.DASHING ||  p.act == Activities.STARTROUND) continue;
+				try {
+					foreach (Keys a in Active) {
+						Head p = HEAD[a];
+						if (p.act == Activities.DASHING || p.act == Activities.STARTROUND)
+							continue;
 						int L = check.Count;
 						foreach (Keys b in check) {
 							Head P = HEAD[b];
@@ -88,20 +92,24 @@ namespace Eight_Orbits {
 								Bounce(ref p, ref P);
 						}
 						check.Add(a);
-					
 
-					HashSet<byte> toEat = new HashSet<byte>();
 
-					foreach (Orb orb in Orb.All) if (p.Collide(orb)) {
-							if (orb.noOwner()) toEat.Add(orb.ID);
-							else if (orb.owner != p.keyCode && orb.state != OrbStates.TRAVELLING) {
-								toDie.Add(p);
-								HEAD[orb.owner].Reward(orb.ID);
+						HashSet<byte> toEat = new HashSet<byte>();
+
+						foreach (Orb orb in Orb.All)
+							if (p.Collide(orb)) {
+								if (orb.noOwner())
+									toEat.Add(orb.ID);
+								else if (orb.owner != p.keyCode && orb.state != OrbStates.TRAVELLING) {
+									toDie.Add(p);
+									HEAD[orb.owner].Reward(orb.ID);
+								}
 							}
-						}
 
-					foreach (byte nom in toEat) p.Eat(nom);
-				}
+						foreach (byte nom in toEat)
+							p.Eat(nom);
+					}
+				} catch (InvalidOperationException) { Console.WriteLine("Active was modded"); }
 
 				if (Map.phase == Phases.STARTROUND) return;
 

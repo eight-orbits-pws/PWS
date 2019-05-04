@@ -67,7 +67,7 @@ namespace Eight_Orbits.Entities {
 			switch (state) {
 				case OrbStates.WHITE:
 					//v.L = Math.Min(v.L, speed);
-					v.L -= Math.Sqrt(Math.Max(0, v.L)) / 64d;
+					v.L -= Math.Sqrt(Math.Max(0, v.L)) / 26d;
 					if (v.L < 0.125) v.L = 0;
 					break;
 
@@ -79,7 +79,6 @@ namespace Eight_Orbits.Entities {
 						color = Color.White;
 						state = OrbStates.WHITE;
 						bulletTime = 0;
-						if (killstreak > 1) MVP.Add(MVPTypes.COLLATERAL, HEAD[owner].DisplayKey, killstreak.ToString());
 						owner = Keys.None;
 						killstreak = 0;
 						isBullet = false;
@@ -131,7 +130,7 @@ namespace Eight_Orbits.Entities {
 				v += n;
 			}
 
-			pos += v;
+			pos += v*.999999d;
 		}
 
 		public void Draw(ref PaintEventArgs e) {

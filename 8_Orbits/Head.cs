@@ -44,7 +44,7 @@ namespace Eight_Orbits.Entities {
 			Map.OnStartGame += Reset;
 			Map.Revive += Revive;
 			OnUpdate += Update;
-			window.DrawHead += Draw;
+			if (AnimationsEnabled) window.DrawHead += Draw;
 		}
 
 		~Head() {
@@ -61,7 +61,7 @@ namespace Eight_Orbits.Entities {
 			Map.OnStartGame -= Reset;
 			Map.OnStartRound -= Revive;
 			OnUpdate -= Update;
-			window.DrawHead -= Draw;
+			if (AnimationsEnabled) window.DrawHead -= Draw;
 
 			Map.SetMaxPoints();
 			try {
@@ -134,7 +134,7 @@ namespace Eight_Orbits.Entities {
 		public void Die() {
 			OnDie?.Invoke();
 			OnUpdate -= Update;
-			window.DrawHead -= Draw;
+			if (AnimationsEnabled) window.DrawHead -= Draw;
 
 			dead = true;
 			this.act = Activities.DEAD;
@@ -146,7 +146,8 @@ namespace Eight_Orbits.Entities {
 			z = 0;
 			DashHideText = false;
 
-			AnimationControl.Add(new Animation(pos, 64, 0, W, HeadR, (float) PHI * HeadR, Color.FromArgb(200, this.color), 0));
+			if (AnimationsEnabled) AnimationControl.Add(new Animation(pos, 64, 0, W, HeadR, (float) PHI * HeadR, Color.FromArgb(200, this.color), 0));
+			else Console.WriteLine(DisplayKey + " died: " + Points + " pts");
 
 			Map.Sort();
 
@@ -173,11 +174,11 @@ namespace Eight_Orbits.Entities {
 
 				case Activities.STARTROUND:
 					pos += v;
-					v.A += speed / (72 * SZR);
+					v.A += speed/(72 * SZR);
 					break;
 
 				case Activities.DASHING:
-					int w = 86;
+					int w = 61;
 					v *= 2d / (Math.Pow(2d * dashFrame / w - 1d, 2d) + 1d);
 
 					pos += v;
