@@ -26,7 +26,7 @@ namespace Eight_Orbits {
 				//else window.StartAsyncUpdate();
 
 				if (AnimationsEnabled) {
-					if (SyncUpdate) VisualThread = new MyTimer(61d / 1000d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
+					if (SyncUpdate) VisualThread = new MyTimer(120d / 1000d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
 					else {
 						System.Timers.Timer timer = new System.Timers.Timer(60d / 1000d);
 						timer.Elapsed += window.Update_Visual;
@@ -51,8 +51,9 @@ namespace Eight_Orbits {
 
 		public static MyTimer UpdateThread;
 		public static MyTimer VisualThread;
+        public static MyTimer NeuralThread;
 
-		public static volatile object updatinglocker = new { };
+        public static volatile object updatinglocker = new { };
 
 		/// <summary>
 		/// A few settings all together:
@@ -107,8 +108,9 @@ namespace Eight_Orbits {
 
 		public static event Action OnUpdate;
 		public static event Action OnUpdateNNW;
+        public static event KillEvent OnKill;
 
-		private static HashSet<Keys> check = new HashSet<Keys>();
+        private static HashSet<Keys> check = new HashSet<Keys>();
 
 		public static void Update() {
 			lock (updatinglocker) {

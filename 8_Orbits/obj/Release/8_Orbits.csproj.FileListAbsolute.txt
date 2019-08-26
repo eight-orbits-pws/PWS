@@ -1,9 +1,0 @@
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\bin\Release\Eight Orbits.exe.config
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\bin\Release\Eight Orbits.exe
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\bin\Release\Eight Orbits.pdb
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\Eight_Orbits.Properties.Resources.resources
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\Eight_Orbits.Window.resources
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\8_Orbits.csproj.GenerateResource.Cache
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\Eight Orbits.exe
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\Eight Orbits.pdb
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\8_Orbits.csprojResolveAssemblyReference.cache
