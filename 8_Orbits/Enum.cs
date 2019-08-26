@@ -1,25 +1,28 @@
-﻿namespace Eight_Orbits.Properties {
-	public delegate void GameEvent();
-	public delegate void PaintEvent(ref System.Windows.Forms.PaintEventArgs e);
+﻿using System.Threading.Tasks;
+
+namespace Eight_Orbits.Properties {
+	public delegate Task AsyncEvent();
+	public delegate void PaintEvent(System.Drawing.Graphics g);
+	delegate void KillEvent(Entities.Head killer, Entities.Head victim);
 
 	public enum MapNames {
 		STANDARD, FIRST, DENSE, SIMPLE, STEPS, ISLES, MOON, RING, WAVE, ME, Length
 	}
 
 	public enum BlastSpawn {
-		ONE, RARE,
+		ONE, RARE
 	}
 
 	public enum States {
-		PAUSED, INGAME, NEWGAME,
+		PAUSED, INGAME, NEWGAME
 	}
 
 	public enum Activities {
-		DEFAULT, STARTROUND, DASHING, ORBITING, DEAD,
+		DEFAULT, STARTROUND, DASHING, ORBITING, DEAD
 	}
 
 	public enum OrbStates {
-		SPAWN, WHITE, TRAVELLING, BULLET, OWNER,
+		SPAWN, WHITE, TRAVELLING, BULLET, OWNER
 	}
 
 	public enum Phases {
@@ -27,14 +30,10 @@
 	}
 
 	public enum MVPTypes {
-		NONE, POINTS, EARLY_KILL, ASSIST, GHOSTKILL, COLLATERAL, ACE, TWO_PTS, WINNER, ACE_WINNER, COLLATERAL_ACE, COLLATERAL_ACE_WINNER, FLAWLESS
+		NONE, POINTS, EARLY_KILL, ASSIST, COLLATERAL, GHOSTKILL, ACE, TWO_PTS, WINNER, ACE_WINNER, COLLATERAL_ACE, COLLATERAL_ACE_WINNER, FLAWLESS
 	}
 
 	public enum AnimationTypes {
 		LINEAR, SQRT, SQUARED, CUBED, SIN, COS
-	}
-
-	public enum AnimationState { //not implemented
-		PLAY, PAUSE, REVERSE 
 	}
 }

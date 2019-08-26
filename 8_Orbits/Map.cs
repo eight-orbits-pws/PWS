@@ -5,46 +5,55 @@ using Eight_Orbits.Properties;
 using static Eight_Orbits.Program;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Eight_Orbits {
-	class World : Visual {
-		//int MaxOrbs = 255;
-		int orbSpawn = 2;
-		int StartRoundTime = 0;
-		int EndRoundTime = 300;
-		int EndGameTime = 500;
+	class World {
+		int MaxOrbs = 256;
+		int orbSpawn = Settings.Default.OrbSpawn;
+		public int StartRoundTime = 0;
+		int EndRoundTime = 180;
+		int EndGameTime = 300;
 
 		byte RoundsPassed = 0;
-		BlastSpawn blastSpawn = BlastSpawn.RARE;
+		public BlastSpawn blastSpawn = (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
 
 		HashSet<Orbit> orbits = new HashSet<Orbit>();
+		public HashSet<Orbit> Orbits { get { return orbits; } }
 		IPoint tempCenter;
 
 		private int tick = 0;
 		public Phases phase = Phases.NONE;
 		public int MaxPoints = 0;
+		
+		public event Action OnClear;
+		public event Action OnClearRemove;
+		public event Action OnStartRound;
+		public event Action OnRevive;
+		//public event Action OnEndRound;
+		public event Action OnStartGame;
+		public event Action OnEndGame;
 
 		public World() {
-			MVP.Winner += EndGame;
-			this.orbits = maps.Random;
-			this.OnStartGame += SetMap;
+			//MVP.Winner += EndGame;
+			this.orbits = maps.Standard;
+			OnUpdate += Update;
 
 			if (!AnimationsEnabled) EndRoundTime = EndGameTime = 10;
 		}
-
+		
 		public void SetMap() {
+			//foreach (Orbit orbit in orbits) orbit.Remove();
 			this.orbits = maps.Random;
 		}
 
 		public void Update() {
-			if (Blast.All.Count < Settings.Default.MaxBlast) new Blast();
-
 			if (phase != Phases.NONE) {
-				
 				tick++;
 				switch (phase) {
 					case Phases.STARTROUND: if (tick == StartRoundTime) {
-							foreach (Keys k in Active) HEAD[k].act = Activities.DEFAULT;
+							foreach (Keys k in ActiveKeys) HEADS[k].act = Activities.DEFAULT;
 							phase = Phases.NONE;
 							tick = 0;
 						} break;
@@ -55,39 +64,47 @@ namespace Eight_Orbits {
 						} break;
 
 					case Phases.ENDGAME: if (tick == EndGameTime) {
+							//SetMap();
 							this.StartGame();
 							tick = 0;
 						} break;
 
 					default: break;
 				}
-			}
+			} else tick = 0;
 		}
 
-		public void Draw(ref PaintEventArgs e) {
-			e.Graphics.DrawString(MaxPoints.ToString(), new Font(FONT, 8, FontStyle.Bold), Brushes.White, 6, 6);
-			e.Graphics.FillPolygon(new SolidBrush(window.MapColor), new PointF[8]{
+		public void Draw(Graphics g) {
+			g.DrawString(MaxPoints.ToString(), new Font(FONT, 8, FontStyle.Bold), Brushes.White, 6, 6);
+			g.FillPolygon(new SolidBrush(window.MapColor), new PointF[8]{
 				new PointF(C, 0f), new PointF(0, C),
 				new PointF(0, W/2-C), new PointF(C, W/2),
 				new PointF(W-C, W/2), new PointF(W, W/2-C),
 				new PointF(W, C), new PointF(W-C, 0)
 			});
 
-			foreach (Orbit orbit in orbits) orbit.Draw(ref e);
+			foreach (Orbit orbit in orbits)
+				orbit.Draw(g);
 		}
 
 		public void spawnOrb() {
-			if (orbSpawn == 0) return;
 			byte i = 0;
 			do {
-				new Orb();
+				new Orb(true);
 				i++;
 			} while (i < orbSpawn);
 		}
 
 		public void newOrb() {
-			if (orbSpawn < 0) new Orb();
-			if (orbSpawn != 0) new Orb();
+			if (orbSpawn < 0) new Orb(false);
+			if (orbSpawn != 0) new Orb(false);
+		}
+
+		public IPoint generateSpawnStartRound(float r) {
+			IPoint pos = generateSpawn(r);
+
+			if (Math.Abs(IPoint.Center * pos - 72*2) <= HeadR * 2) return generateSpawnStartRound(r);
+			else return pos;
 		}
 
 		public IPoint generateSpawn(float r) {
@@ -127,22 +144,22 @@ namespace Eight_Orbits {
 			return tempCenter;
 		}
 		
-		public event GameEvent OnClear;
 		public void Clear() {
-			OnClear?.Invoke();
-			//if (Active.Count == 1) HEAD[Active[0]].tail.Die();
-			//SpawnOrbs.Clear();
-			//AllOrbs.Clear();
-			//MapOrbs.Clear();
-			//Blasts.Clear();
-			//Bullets.Clear();
-			Orb.All.Clear();
-			Active.AddRange(Dead);
-			Dead.Clear();
+			lock (window.draw_lock) {
+				OnClearRemove?.Invoke();
+				OnClearRemove = null;
+
+				OnClear?.Invoke();
+				
+				lock (Orb.OrbLock) Orb.All.Clear();
+				lock (Blast.BlastLock) Blast.All.Clear();
+				lock (ActiveLock) ActiveKeys.AddRange(InactiveKeys);
+				InactiveKeys.Clear();
+			}
 		}
 
 		public void SetMaxPoints() {
-			switch (Active.Count) {
+			switch (ActiveKeys.Count) {
 				case 0: MaxPoints = 0;
 					break;
 				case 1: MaxPoints = 0;
@@ -161,48 +178,49 @@ namespace Eight_Orbits {
 					break;
 				case 8: MaxPoints = 36;
 					break;
-				default: MaxPoints = 5 + (Active.Count - 2) * 5;
+				case 9: MaxPoints = 42;
+					break;
+				case 10: MaxPoints = 47;
+					break;
+				case 11: MaxPoints = 51;
+					break;
+				case 12: MaxPoints = 55;
+					break;
+				default: MaxPoints = Math.Min(5 + (ActiveKeys.Count - 2) * 5, 300);
 					break;
 			}
 		}
-
-		public event GameEvent OnStartRound;
-		public event GameEvent Revive;
-		public event GameEvent OnEndRound;
-		public event GameEvent OnStartGame;
-		public event GameEvent OnEndGame;
-
+		
 		public void StartRound() {
 			OnStartRound?.Invoke();
 			Clear();
 			StartRoundTime = (int) Math.Round(Math.PI/speed*72*3 * SZR);
 			StartRotation = 2D*Math.PI*R.NextDouble();
-			//if (Active.Count == 1) HEAD[Active[0]].Die();
 			MVP.Hide();
 			Map.spawnOrb();
-			Active.AddRange(Dead);
-			Dead.Clear();
 			Sort();
-			Revive?.Invoke();
-			if (HEAD[Active[0]].Points > 0) Leader = Active[0];
+			OnRevive?.Invoke();
+			if (HEADS[ActiveKeys[0]].Points > 0) Leader = ActiveKeys[0];
 			phase = Phases.STARTROUND;
 		}
 
 		public void EndRound() {
-			OnEndRound?.Invoke();
-			if (phase == Phases.ENDGAME) return;
-			phase = Phases.ENDROUND;
+			Thread.CurrentThread.Name = "EndRound_Thread";
+			MVP.Analyze();
+			//OnEndRound();
+			if (phase != Phases.ENDGAME) phase = Phases.ENDROUND;
 		}
 
 		public void StartGame() {
+			SetMap();
 			OnStartGame?.Invoke();
-			Console.WriteLine(RoundsPassed++);
+			window.writeln("Round: " + RoundsPassed++);
 			StartRound();
 		}
 
 		public void EndGame() {
 			OnEndGame?.Invoke();
-			Console.WriteLine(">> Game ended");
+			window.writeln(">> Game ended");
 			phase = Phases.ENDGAME;
 		}
 
@@ -215,33 +233,40 @@ namespace Eight_Orbits {
 			SortedPoints.Add(0);
 
 			int pts; byte i;
-			foreach (Keys key in Active) {
-				pts = HEAD[key].Points;
-				i = 0;
-				while (true) {
-					if (pts > SortedPoints[i] || i == (byte) (SortedPoints.Count - 1)) {
-						SortedPoints.Insert(i, pts);
-						SortedKeys.Insert(i, key);
-						break;
-					} else i++;
+			lock (ActiveLock) {
+				foreach (Keys key in ActiveKeys) {
+					pts = HEADS[key].Points;
+					i = 0;
+					while (true) {
+						if (pts > SortedPoints[i] || i == (byte)(SortedPoints.Count - 1)) {
+							SortedPoints.Insert(i, pts);
+							SortedKeys.Insert(i, key);
+							break;
+						} else i++;
+					}
 				}
+				SortedKeys.RemoveAt(SortedKeys.Count - 1);
+				ActiveKeys = SortedKeys;
 			}
-			SortedKeys.RemoveAt(SortedKeys.Count - 1);
-			Active = SortedKeys;
+			int l = ActiveKeys.Count;
+			for (sbyte j = (sbyte) (l-1); j >= 0; j--) HEADS[ActiveKeys[j]].index = (byte) j;
+			for (sbyte j = (sbyte) (InactiveKeys.Count-1); j >= 0; j--) HEADS[InactiveKeys[j]].index = (byte) (j+l);
+			
+			IKey.UpdateAll();
 		}
 
-		public void DrawCrown(ref PaintEventArgs e) {
-			Circle p = new Circle(HEAD[Leader]);
+		public void DrawCrown(Graphics g) {
+			Circle p = new Circle(HEADS[Leader]);
 
 			p.v.L = HeadR + Resources.crown.Height / 2 + 2;
 			p.pos += p.v;
 
-			e.Graphics.TranslateTransform((float) p.pos.X, (float) p.pos.Y);
-			e.Graphics.RotateTransform((float) (p.v.A / Math.PI * 180d + 90d));
-			e.Graphics.ScaleTransform(SZR, SZR);
-			e.Graphics.DrawImage(Resources.crown, -Resources.crown.Width / 2, -Resources.crown.Height / 2);
+			g.TranslateTransform((float) p.pos.X, (float) p.pos.Y);
+			g.RotateTransform((float) (p.v.A / Math.PI * 180d + 90d));
+			g.ScaleTransform(SZR, SZR);
+			g.DrawImage(Resources.crown, -Resources.crown.Width / 2, -Resources.crown.Height / 2);
 
-			e.Graphics.ResetTransform();
+			g.ResetTransform();
 		}
 
 		public static class maps {

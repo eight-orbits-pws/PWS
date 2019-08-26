@@ -5,14 +5,14 @@
     <Setting Name="ContrastMode" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="Scale" Type="System.Single" Scope="Application">
+    <Setting Name="Scale" Type="System.Single" Scope="User">
       <Value Profile="(Default)">1</Value>
     </Setting>
-    <Setting Name="MaxBlast" Type="System.Byte" Scope="User">
-      <Value Profile="(Default)">1</Value>
+    <Setting Name="OrbSpawn" Type="System.SByte" Scope="User">
+      <Value Profile="(Default)">2</Value>
     </Setting>
-    <Setting Name="BlastSpawnRate" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">1</Value>
+    <Setting Name="BlastSpawn" Type="System.String" Scope="User">
+      <Value Profile="(Default)">rare</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -4,75 +4,89 @@ using System.Drawing;
 using System.Windows.Forms;
 using static Eight_Orbits.Program;
 using Eight_Orbits.Properties;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Eight_Orbits.Entities {
 	class Blast : Circle, Visual {
-		public static HashSet<Blast> All = new HashSet<Blast>();
-		private bool Popped = false;
+		public static volatile object BlastLock = new { };
+		public static List<Blast> All = new List<Blast>();
 		private Head head;
 
-		private Animatable PopR;
-		private Animatable PopA;
+		public static void Spawn() {
+			switch (Map.blastSpawn) {
+				case BlastSpawn.RARE:
+					if (R.NextDouble() < Math.Pow(2, -8)) lock (BlastLock) All.Add(new Blast());
+					break;
+
+				case BlastSpawn.ONE:
+					if (All.Count < 1) lock (BlastLock) All.Add(new Blast());
+					break;
+			}
+		}
+
+		public static void DrawAll(Graphics g) {
+			lock (BlastLock) foreach (Visual b in All) b.Draw(g);
+		}
 
 		public Blast() {
 			this.r = BlastR;
 			this.pos = Map.generateSpawn(this.r);
-			this.PopR = new Animatable(r, BlastRange, 22, AnimationTypes.SQRT);
-			this.PopA = new Animatable(255, 128, 22);
-
-			All.Add(this);
-			OnUpdate += Update;
-			window.DrawBlast += Draw;
-			Map.OnClear += Remove;
+			//Map.OnClear += Remove;
 		}
 
 		public void Remove() {
-			OnUpdate -= Update;
-			window.DrawBlast -= Draw;
-			Map.OnClear -= Remove;
-			All.Remove(this);
+			lock (BlastLock) All.Remove(this);
 		}
 
 		public void Update() {
-			if (Map.phase == Phases.STARTROUND) return;
+			if (state != States.INGAME || Map.phase == Phases.STARTROUND) return;
+			lock (ActiveLock) {
+				foreach (Keys k in ActiveKeys) {
+					Head h = HEADS[k];
 
-			if (Popped) {
-				if (PopR.Ended()) PopEnd();
-			} else {
-				foreach (Keys k in Active) {
-					Head h = HEAD[k];
-
-					if (h.act != Activities.DASHING && this.Collide(h)) {
+					if (h.act != Activities.DASHING && this.Collide(h))
 						Pop(h);
-					}
 				}
 			}
 		}
 
 		public void Pop(Head h) {
-			Popped = true;
 			Collect(h);
 			head = h;
-			PopR.Reset();
-			PopA.Reset();
-
-			PopR.OnEnd += PopEnd;
+			new Animation(pos, 13, BlastR, BlastRange, 5*Scale, 5*Scale, Color.White, 13, AnimationTypes.SQRT);
+			window.DrawBlast -= Draw;
+			new Thread(async () => {
+				Thread.CurrentThread.Name = "BlastPop_Timer";
+				if (Thread.CurrentThread.IsBackground) await WaitUntilTick(Tick + 13);
+				PopEnd();
+			}).Start();
+			Remove();
 		}
 
-		public void Draw(ref PaintEventArgs e) {
-			if (Popped) e.Graphics.DrawEllipse(new Pen(Color.FromArgb((int) PopA, Color.White), 5*Scale), (float) pos.X - PopR, (float) pos.Y - PopR, PopR*2, PopR*2);
-			else e.Graphics.DrawEllipse(new Pen(Color.White, 5 * Scale), (float) pos.X - r, (float) pos.Y - r, r*2, r*2);
+		public void Draw(Graphics g) {
+			g.DrawEllipse(new Pen(Color.White, 5 * Scale), (float) pos.X - r, (float) pos.Y - r, r*2, r*2);
 		}
 
 		public void Collect(Head head) {
-			HashSet<Orb> toEat = new HashSet<Orb>(Orb.All);
-
-			foreach (Orb orb in toEat) if (head.pos * orb.pos < BlastRange && orb.owner != head.keyCode && !orb.isBullet) head.Eat(orb.ID);
+			for (int i = Orb.All.Count - 1; i >= 0; i--) {
+				Orb orb = Orb.All[i];
+				if (head.pos * orb.pos < BlastRange && orb.owner != head.keyCode && !orb.isBullet) head.Eat(orb.ID);
+			}
 		}
 
 		public void PopEnd() {
-			if (!head.Died) Collect(head);
-			Remove();
+			if (!head.Died) {
+				Collect(head);
+				if (Map.blastSpawn != BlastSpawn.ONE) {
+					Blast blast;
+					for (int i = All.Count - 1; i >= 0; i--) {
+						blast = All[i];
+						if (head.pos * blast.pos < BlastRange) blast.Pop(head);
+					}
+				}
+			}
 		}
+
 	}
 }

@@ -5,23 +5,24 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static Eight_Orbits.Program;
 
 namespace Eight_Orbits {
-	public class MVP {
-		private static List<Stat> records = new List<Stat>();
+	class MVP {
+		private static volatile List<Stat> records = new List<Stat>();
+		public static volatile object RecordsLock = new { };
 		private static Stat mvp = new Stat();
 
-		private static Animatable Appear = new Animatable(0, 1, 60);
-		private static Animatable Disappear = new Animatable(1, 0, 60);
+		private static Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN);
+		private static Animatable Disappear = new Animatable(1, 0, 36, AnimationTypes.COS);
 		private static bool Displaying = true;
 		private static string DisplayText = "Prepare!";
 		private static Color color = Color.FromArgb(64, 32, 32, 32);
 
 		private static bool winner = false;
-		//public static bool Winner { get { return winner; } }
 
 		public static void Add(MVPTypes type) {
 			records.Add(new Stat(type));
@@ -39,56 +40,74 @@ namespace Eight_Orbits {
 			//get points
 			Keys leader;
 			Keys second = Keys.None;
-			if (Active.Count == 1) {
-				leader = Active[0];
+			if (ActiveKeys.Count == 1) {
+				leader = ActiveKeys[0];
 			} else
-				leader = Dead[0];
+				leader = InactiveKeys[0];
 
-			foreach (Keys p in Dead) {
-				if (HEAD[leader].Points < HEAD[p].Points) {
+			foreach (Keys p in InactiveKeys) {
+				if (HEADS[leader].Points < HEADS[p].Points) {
 					second = leader;
 					leader = p;
-				} else if (second == Keys.None || HEAD[second].Points < HEAD[p].Points) {
+				} else if (second == Keys.None || HEADS[second].Points < HEADS[p].Points) {
 					second = p;
 				}
 			}
 
 			if (Ace()) Add(MVPTypes.ACE);
-			if (HEAD[leader].Points < Map.MaxPoints)
-				Add(MVPTypes.POINTS, HEAD[leader].DisplayKey, HEAD[leader].Points.ToString());
-			else if (HEAD[leader].Points - HEAD[second].Points < 2)
+			if (HEADS[leader].Points < Map.MaxPoints)
+				Add(MVPTypes.POINTS, HEADS[leader].DisplayKey, HEADS[leader].Points.ToString());
+			else if (HEADS[leader].Points - HEADS[second].Points < 2)
 				Add(MVPTypes.TWO_PTS);
-			else if (Flawless()) { winner = true; Add(MVPTypes.FLAWLESS); } 
-			else { winner = true; Add(MVPTypes.WINNER, HEAD[leader].DisplayKey); }
+			else if (Flawless()) {
+				winner = true;
+				Add(MVPTypes.FLAWLESS);
+			} else {
+				winner = true;
+				Add(MVPTypes.WINNER, HEADS[leader].DisplayKey);
+			}
 
-			foreach (Stat record in records) {
-				if (record.Type.GetHashCode() > mvp.Type.GetHashCode()) mvp = record;
-				else if (record.Type == MVPTypes.COLLATERAL && mvp.Type == MVPTypes.COLLATERAL && (record.Special[0] > mvp.Special[0])) mvp = record;
+			Stat record;
+			for (int i = 0; i < records.Count; i++) {
+				lock (RecordsLock) {
+					record = records[i];
 				//COLLAT -> ACE -> WIN
-				if (record.Type == MVPTypes.ACE && mvp.Type == MVPTypes.COLLATERAL && mvp.Special.Equals((Active.Count - 1))) mvp = new Stat(MVPTypes.COLLATERAL_ACE);
-				else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.ACE) mvp = new Stat(MVPTypes.ACE_WINNER);
-				else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.COLLATERAL_ACE) mvp = new Stat(MVPTypes.COLLATERAL_ACE_WINNER);
+					if (record.Type == MVPTypes.ACE && mvp.Type == MVPTypes.COLLATERAL && mvp.Special.Equals((InactiveKeys.Count - 1)))
+						mvp = new Stat(MVPTypes.COLLATERAL_ACE);
+					else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.ACE)
+						mvp = new Stat(MVPTypes.ACE_WINNER);
+					else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.COLLATERAL_ACE)
+						mvp = new Stat(MVPTypes.COLLATERAL_ACE_WINNER);
+					else if (record.Type.GetHashCode() > mvp.Type.GetHashCode())
+						mvp = record;
+					else if (record.Type == MVPTypes.COLLATERAL && mvp.Type == MVPTypes.COLLATERAL && (record.Special[0] > mvp.Special[0]))
+						mvp = record;
+				}
 			}
 
 			SetMessage();
 			Show();
 
 			if (winner) {
-				Winner?.Invoke();
+				Map.EndGame();
+				//Winner?.Invoke();
 				Leader = leader;
 			}
 
 			Clear();
+
+			HEADS[leader].IsLeader = true;
 		}
 
 		public static bool Flawless() {
-			foreach (Keys key in Dead) if (HEAD[key].Points > 0) return false;
+			foreach (Keys key in InactiveKeys) if (HEADS[key].Points > 0) return false;
 
 			return true;
 		}
 
 		public static bool Ace() {
-			foreach (Keys key in Dead) if (HEAD[key].Kills > 0) return false;
+			if (InactiveKeys.Count < 3) return false;
+			foreach (Keys key in InactiveKeys) if (HEADS[key].Kills > 0) return false;
 			return true;
 		}
 
@@ -106,28 +125,36 @@ namespace Eight_Orbits {
 					return;
 
 				case MVPTypes.COLLATERAL:
-					if (mvp.Special=="2") DisplayText = mvp.Hero + " collateral!";
+					if (mvp.Special == "2") DisplayText = mvp.Hero + " collateral!";
 					else DisplayText = mvp.Hero + " " + mvp.Special + "-collateral!";
 					break;
-					
+
+				case MVPTypes.GHOSTKILL:
+					DisplayText = mvp.Hero + " ghostkill!";
+					break;
+
+				case MVPTypes.ASSIST:
+					DisplayText = mvp.Hero + " assist-kill on " + mvp.Special;
+					break;
+
 				case MVPTypes.TWO_PTS:
 					DisplayText = "Get a 2-point lead";
 					break;
-					
+
 				case MVPTypes.ACE:
 					DisplayText = "Ace!";
 					break;
 
 				case MVPTypes.COLLATERAL_ACE:
-					DisplayText = "Collateral ace!";
+					DisplayText = "Collateral Ace!";
 					break;
 
 				case MVPTypes.ACE_WINNER:
-					DisplayText = mvp.Hero + " won with ace!";
+					DisplayText = "Won with Ace!";
 					break;
 
 				case MVPTypes.COLLATERAL_ACE_WINNER:
-					DisplayText = "Collateral ace! Win deserved.";
+					DisplayText = "Collateral Ace! Win deserved.";
 					break;
 
 				case MVPTypes.WINNER:
@@ -138,19 +165,23 @@ namespace Eight_Orbits {
 					DisplayText = "Flawless!";
 					break;
 
+				case MVPTypes.EARLY_KILL:
+					DisplayText = mvp.Hero + " died <1s";
+					break;
+
 				default:
-					DisplayText = "?";
+					DisplayText = mvp.Type.ToString();
 					return;
 			}
 		}
-		
-		public static event GameEvent Winner;
+
+		//public static event Action Winner;
 
 		public static void Show() {
 			if (AnimationsEnabled) {
 				Displaying = true;
 				Appear.Reset();
-			} else Console.WriteLine("> " + DisplayText);
+			} else window.writeln("> " + DisplayText);
 		}
 
 		public static void Hide() {
@@ -160,24 +191,24 @@ namespace Eight_Orbits {
 			}
 		}
 
-		public static void Draw(ref PaintEventArgs e) {
-			e.Graphics.TranslateTransform(W/2, W / 4f);
-			float r;
-			if (Displaying) r = (float) Appear; else r = (float) Disappear;
+		public static void Draw(Graphics g) {
+			g.TranslateTransform(W / 2, W / 4f);
+			float r = Displaying? (float) Appear:(float) Disappear;
+
 			if (r != 0) {
-				e.Graphics.ScaleTransform(1, r);
+				g.ScaleTransform(1, r);
 
 				Font font = new Font(FONT, 56);
-				SizeF sz = e.Graphics.MeasureString(DisplayText, font);
+				SizeF sz = g.MeasureString(DisplayText, font);
 
-				e.Graphics.FillRectangle(new SolidBrush(color), -W / 2, -50, W, 100);
-				e.Graphics.DrawString(DisplayText, font, Brushes.Black, -sz.Width / 2, -sz.Height/2);
+				g.FillRectangle(new SolidBrush(color), -W / 2, -50, W, 100);
+				g.DrawString(DisplayText, font, Brushes.Black, -sz.Width / 2, -sz.Height / 2);
 			}
-			e.Graphics.ResetTransform();
+			g.ResetTransform();
 		}
 	}
 
-	public class Stat {
+	class Stat {
 		private string hero;
 		private MVPTypes type;
 		private string special;
@@ -208,6 +239,47 @@ namespace Eight_Orbits {
 			this.hero = hero;
 			this.type = type;
 			this.special = special;
+		}
+	}
+
+	/// Deprecated because of lag
+	class Assist {
+		private static HashSet<Keys> bounced = new HashSet<Keys>();
+		Head head;
+		Head HEAD;
+
+		public Assist(Head head, Head HEAD) {
+			if (SyncUpdate && ActiveKeys.Count <= 12 && !bounced.Contains(head.keyCode) && !bounced.Contains(HEAD.keyCode)) {
+				bounced.Add(head.keyCode);
+				bounced.Add(head.keyCode);
+
+				this.head = head;
+				this.HEAD = HEAD;
+				OnKill += kill_confirmed;
+				//new Thread(analyze).Start();
+			}
+		}
+
+		private async void analyze() {
+			Thread.CurrentThread.Name = "Assist_Thread";
+			if (Thread.CurrentThread.IsBackground) await WaitUntilTick(Tick + 13);
+
+			OnKill -= kill_confirmed;
+			bounced.Remove(this.head.keyCode);
+			bounced.Remove(this.HEAD.keyCode);
+		}
+
+		private void kill_confirmed(Head killer, Head victim) {
+			if (head != killer && head != victim && HEAD != killer && HEAD != victim) return;
+			if ((head == killer && HEAD == victim) || (HEAD == killer && head == victim)) return;
+			lock (MVP.RecordsLock) {
+				if (head == victim) MVP.Add(MVPTypes.ASSIST, HEAD.DisplayKey, head.DisplayKey);
+				else if (HEAD == victim) MVP.Add(MVPTypes.ASSIST, head.DisplayKey, HEAD.DisplayKey);
+			}
+		}
+
+		private void remove() {
+			OnKill -= kill_confirmed;
 		}
 	}
 }

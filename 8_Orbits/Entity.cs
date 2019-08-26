@@ -6,7 +6,7 @@ using System.Windows.Forms;
 namespace Eight_Orbits.Properties {
 	interface Visual {
 		void Update();
-		void Draw(ref PaintEventArgs e);
+		void Draw(Graphics g);
 	}
 
 	public class Circle {
@@ -48,7 +48,7 @@ namespace Eight_Orbits.Properties {
 		}
 
 		public bool Collide(Circle c) {
-			return this.pos * c.pos < this.r + c.r - 2;
+			return this.pos * c.pos < this.r + c.r - 3;
 		}
 	}
 }

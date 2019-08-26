@@ -1,4 +1,5 @@
-﻿using Eight_Orbits.Properties;
+﻿using Eight_Orbits.Entities;
+using Eight_Orbits.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -7,10 +8,30 @@ using static Eight_Orbits.Program;
 
 namespace Eight_Orbits {
 	class IKey : Visual {
-		public static float Width = W;
-		public static float Height = H - W / 2;
+		private static float Ox000w = W;
+		public static float WIDTH {
+			get { return Ox000w; }
+			set {
+				Ox000w = value;
+				foreach (Keys id in HEADS.Keys) HEADS[id].key.w.Set(Ox000w);
+			}
+		}
+		public static float HEIGHT = H - W / 2;
 
-		public byte index = 0;
+		public static void UpdateAll() {
+			foreach (Keys id in HEADS.Keys) HEADS[id].key.Update();
+		}
+
+		private static int get_index(Keys key) {
+			lock (ActiveLock) {
+				if (ActiveKeys.Contains(key))
+					return ActiveKeys.IndexOf(key);
+				else
+					return ActiveKeys.Count + InactiveKeys.IndexOf(key);
+			}
+		}
+
+		//public byte index = 0;
 		private Animatable x = new Animatable(W, 48);
 		private Animatable w = new Animatable(0, 48);
 		private Animatable a = new Animatable(0, 10);
@@ -22,15 +43,15 @@ namespace Eight_Orbits {
 		private Color color;
 		private Color transit = Color.Black;
 
+		private Font std_font = new Font(FONT, 20 * SZR);
+
 		public IKey(Keys head, string DisplayKey, Color color) {
-			//keylist.Add(this);
-			index = (byte) Active.Count;
-			Width = W / (index + 1);
-			Height = H - W / 2;
+			//index = (byte) Active.Count;
+			WIDTH = W / (float) (ActiveKeys.Count + 1);
+			w.Set(WIDTH);
 			owner = head;
 			DKey = DisplayKey;
 			this.color = color;
-
 			window.DrawKeys += Draw;
 		}
 
@@ -63,33 +84,38 @@ namespace Eight_Orbits {
 			a.Set(1);
 		}
 
-		public void Update() { return; }
+		public void Add(int pts) {
+			new Coin(ref x, w/2, W/2 + HEIGHT * 3 / 4, pts, Color.White);
+		}
 
-		public void Draw(ref PaintEventArgs e) {
+		public void Update() {
+			x.Set(get_index(owner) * WIDTH);
+		}
+
+		public void Draw(Graphics g) {
 			Color txtColor;
-			if (Active.Contains(owner)) {
-				index = (byte)Active.IndexOf(owner);
-			} else {
-				index = (byte)(Active.Count + Dead.IndexOf(owner));
-			}
 
-			if (pressed) txtColor = AnimationControl.Lurp(transit, color, (float) a);
+			if (pressed) txtColor = AnimatableColor.Lurp(transit, color, (float) a);
 			else txtColor = Color.White;
 
-			w.Set(Width);
-			x.Set(index * Width);
-			e.Graphics.FillRectangle(new SolidBrush(AnimationControl.Lurp(color, transit, (float) a)), (float) x, W/2, (float) w, Height);
-			Font font = new Font(FONT, 20 * SZR);
-			SizeF sz = e.Graphics.MeasureString(DKey, font);
-			sz.Width /= 2;
-			sz.Height /= 2;
-			e.Graphics.DrawString(DKey, font, new SolidBrush(txtColor), x + w/2 - sz.Width, W/2 + Height / 4 - sz.Height);
+			g.FillRectangle(new SolidBrush(AnimatableColor.Lurp(color, transit, (float) a)), (float) x, W/2, (float) w, HEIGHT);
+			Font font;
+			SizeF sz = g.MeasureString(DKey, std_font);
+			if (sz.Width > WIDTH) {
+				font = new Font(FONT, 20 * SZR * WIDTH / sz.Width);
+				sz = g.MeasureString(DKey, font);
+			} else font = new Font(std_font, FontStyle.Regular);
+
+			g.DrawString(DKey, font, new SolidBrush(txtColor), x + w/2 - sz.Width/2, W/2 + HEIGHT / 4 - sz.Height/2);
 
 			string pts = points.ToString();
-			sz = e.Graphics.MeasureString(pts, font);
-			sz.Width /= 2;
-			sz.Height /= 2;
-			e.Graphics.DrawString(pts, font, new SolidBrush(txtColor), x + w/2 - sz.Width, W/2 + Height * 3/4 - sz.Height);
+			sz = g.MeasureString(pts, std_font);
+			if (sz.Width > WIDTH) {
+				font = new Font(FONT, 20 * SZR * WIDTH / sz.Width);
+				sz = g.MeasureString(pts, font);
+			} else font = new Font(std_font, FontStyle.Regular);
+
+			g.DrawString(pts, font, new SolidBrush(txtColor), x + w/2 - sz.Width/2, W/2 + HEIGHT * 3/4 - sz.Height/2);
 		}
 	}
 }

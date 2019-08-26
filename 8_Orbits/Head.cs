@@ -5,21 +5,31 @@ using static Eight_Orbits.Program;
 using Eight_Orbits.Properties;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Neural_Network;
+using System.Threading;
 
 namespace Eight_Orbits.Entities {
-    class Head : Circle, Visual {
+	class Head : Circle, Visual {
+		private static byte bots = 0;
 
 		public Keys keyCode = Keys.None;
 		public string DisplayKey;
 		public byte Points = 0;
 		public byte Kills = 0;
+		public int debug_kills = 0;
+		private HashSet<Keys> killed = new HashSet<Keys>();
+		public byte index = 0;
+
+		public bool IsLeader = false;
 
 		private IPoint orbitCenter;
 		public Tail tail = new Tail();
 
 		private float z = 0;
-		private byte dashFrame = 0;
+		private sbyte dashFrame = -1;
 		private bool DashHideText = false;
+
+		private bool bot = false;
 
 		private bool dead = false;
 		public bool Died {  get { return dead; } }
@@ -29,34 +39,66 @@ namespace Eight_Orbits.Entities {
 		public Activities act = Activities.DEFAULT;
 		public IKey key;
 
-		public Head(Keys key) {
+		private Head() {
+			index = (byte) ActiveKeys.Count;
 			r = HeadR * SZR;
-			v = new IVector(R.NextDouble() * 2 - 1d, R.NextDouble() * 2 - 1d);
-			keyCode = key;
-			DisplayKey = getKeyString(keyCode);
-			Console.WriteLine(DisplayKey);
-
+			v = IVector.Up;
 			pos = Map.generateSpawn(HeadR);
-			color = Color.FromArgb(255, R.Next(256), R.Next(256), R.Next(256));
-
-			this.key = new IKey(keyCode, DisplayKey, color);
 
 			Map.OnStartGame += Reset;
-			Map.Revive += Revive;
+			Map.OnRevive += Revive;
+			Map.OnClear += Clear;
 			OnUpdate += Update;
 			if (AnimationsEnabled) window.DrawHead += Draw;
+		}
+
+		public Head(Neat nnw) : this() {
+			if (bots < 10) keyCode = (Keys) new KeysConverter().ConvertFromString("D" + bots);
+			else keyCode = (Keys) new KeysConverter().ConvertFromString("F" + (bots + 3));
+
+			if (bots < 10) DisplayKey = "B" + bots;
+			else DisplayKey = "B" + (char) (bots+55);
+
+			color = Color.FromArgb(255, 0, 255, 255);
+			window.writeln(DisplayKey);
+
+			this.key = new IKey(keyCode, DisplayKey, color);
+			ActiveKeys.Add(keyCode);
+			IKey.UpdateAll();
+
+			nnw.SetKey(keyCode);
+			nnw.Fire += Action;
+			nnw.KeyUp += key.Release;
+
+			this.bot = true;
+			bots++;
+		}
+
+		public Head(Keys key) : this() {
+			this.keyCode = key;
+
+			DisplayKey = getKeyString(keyCode);
+			window.writeln(DisplayKey);
+			
+			color = generate_color();
+
+			this.key = new IKey(keyCode, DisplayKey, color);
 		}
 
 		~Head() {
 			Map.SetMaxPoints();
 			try {
-				IKey.Width = W / Active.Count;
+				IKey.WIDTH = W / ActiveKeys.Count;
 			} catch (DivideByZeroException) {
-				IKey.Width = 0;
+				IKey.WIDTH = 0;
 			}
 		}
 
 		public void Remove() {
+			if (bot) bots--;
+			ActiveKeys.Remove(keyCode);
+			InactiveKeys.Remove(keyCode);
+			HEADS.Remove(keyCode);
 			key.Remove();
 			Map.OnStartGame -= Reset;
 			Map.OnStartRound -= Revive;
@@ -65,9 +107,22 @@ namespace Eight_Orbits.Entities {
 
 			Map.SetMaxPoints();
 			try {
-				IKey.Width = W / Active.Count;
+				IKey.WIDTH = W / (float) ActiveKeys.Count;
 			} catch (DivideByZeroException) {
-				IKey.Width = 0;
+				IKey.WIDTH = 0;
+			}
+		}
+
+		private void Clear() {
+			IsLeader = false;
+
+			if (dead) {
+				OnUpdate += Update;
+				window.DrawHead += Draw;
+				dead = false;
+			} else {
+				z = 0;
+				DashHideText = false;
 			}
 		}
 
@@ -76,6 +131,7 @@ namespace Eight_Orbits.Entities {
 
 			switch (act) {
 				case Activities.DEFAULT:
+					if (dashFrame < 0) return;
 					//dash or orbit
 					if (Map.InOrbit(pos)) {
 						act = Activities.ORBITING;
@@ -100,72 +156,99 @@ namespace Eight_Orbits.Entities {
 		public void Eat(byte OrbId) {
 			Orb orb = Orb.All[OrbId];
 
-			if (!orb.noOwner()) HEAD[orb.owner].tail.Remove(OrbId);
+			if (!orb.noOwner()) HEADS[orb.owner].tail.Remove(OrbId);
 
 			orb.newOwner(this.keyCode);
 			tail.Add(OrbId);
 		}
 
 		public void Revive() {
-			if (dead) {
-				OnUpdate += Update;
-				window.DrawHead += Draw;
-				dead = false;
-			} else {
-				z = 0;
-				DashHideText = false;
-			}
-
 			this.act = Activities.STARTROUND;
 			this.pos = IPoint.Center;
-			this.v.A = 2 * Math.PI / Active.Count * Active.IndexOf(keyCode);
+			this.v.A = 2 * Math.PI / ActiveKeys.Count * ActiveKeys.IndexOf(keyCode) + StartRotation;
 			Kills = 0;
+			this.debug_kills = 0;
+			this.killed.Clear();
 			key.Revive();
 		}
 
 		public void Reset() {
+			this.debug_kills = 0;
 			this.Points = 0;
 			this.Kills = 0;
 			key.points = Points;
 		}
 
-		public event GameEvent OnDie;
+		public event Action OnDie;
+		public event Action OnReward;
+		private volatile object lock_die = new { };
 
 		public void Die() {
+			lock (lock_die) {
+				if (dead) return;
+				dead = true;
+			}
 			OnDie?.Invoke();
 			OnUpdate -= Update;
-			if (AnimationsEnabled) window.DrawHead -= Draw;
+			if (AnimationsEnabled)
+				window.DrawHead -= Draw;
 
-			dead = true;
+			if (Tick < 60 + Map.StartRoundTime)
+				MVP.Add(MVPTypes.EARLY_KILL, DisplayKey);
+
 			this.act = Activities.DEAD;
 
-			Active.Remove(this.keyCode);
-			Dead.Insert(0, this.keyCode);
+			ActiveKeys.Remove(this.keyCode);
+			InactiveKeys.Insert(0, this.keyCode);
 			key.Die();
 			tail.Die();
 			z = 0;
 			DashHideText = false;
 
-			if (AnimationsEnabled) AnimationControl.Add(new Animation(pos, 64, 0, W, HeadR, (float) PHI * HeadR, Color.FromArgb(200, this.color), 0));
-			else Console.WriteLine(DisplayKey + " died: " + Points + " pts");
+			if (AnimationsEnabled && ActiveKeys.Count <= 12)
+				new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, this.color), 0);
+			if (AnimationsEnabled)
+				new Animation(pos, 12, 0, 0, HeadR, HeadR, this.color, 32, AnimationTypes.CUBED);
+			else
+				window.writeln(DisplayKey + " died: " + Points + " pts");
 
 			Map.Sort();
-
-			if (Active.Count == 1) Map.EndRound();
+			IKey.UpdateAll();
+			if (ActiveKeys.Count == 1) new Thread(Map.EndRound).Start();
 		}
 
-		public void Reward(byte OrbId) {
-			this.Points += ++Kills;
-			this.Points += Orb.All[OrbId].KillStreak++;
-			key.points = Points;
+		private volatile object lock_reward = new {};
+		public byte Reward(byte OrbId, Keys victim) {
+			byte temp;
+			lock (MVP.RecordsLock) {
+				lock (lock_reward) {
+					if (killed.Contains(victim))
+						return 0;
+					else
+						killed.Add(victim);
+					this.debug_kills++;
+					OnReward?.Invoke();
+					temp = this.Points;
+					this.Points += ++Kills;
+					this.Points += Orb.All[OrbId].KillStreak++;
+					key.Add(this.Points - temp);
+					key.points = Points;
 
-			if (Orb.All[OrbId].KillStreak > 1) MVP.Add(MVPTypes.COLLATERAL, DisplayKey, Orb.All[OrbId].KillStreak.ToString());
+					if (Orb.All[OrbId].KillStreak > 1)
+						MVP.Add(MVPTypes.COLLATERAL, DisplayKey, Orb.All[OrbId].KillStreak.ToString());
+					if (dead)
+						MVP.Add(MVPTypes.GHOSTKILL, DisplayKey);
+				}
+			}
+			return (byte) (Points - temp);
 		}
 
 		public void Update() {
+			if (!Ingame) return;
 			tail.logAdd(pos.Copy());
-
+			tail.Update();
 			v.L = speed;
+			if (dashFrame < 0) dashFrame++;
 
 			switch (act) {
 				case Activities.DEFAULT:
@@ -178,7 +261,7 @@ namespace Eight_Orbits.Entities {
 					break;
 
 				case Activities.DASHING:
-					int w = 61;
+					int w = 43;
 					v *= 2d / (Math.Pow(2d * dashFrame / w - 1d, 2d) + 1d);
 
 					pos += v;
@@ -187,7 +270,7 @@ namespace Eight_Orbits.Entities {
 					
 					if (dashFrame++ == w) {
 						act = Activities.DEFAULT;
-						dashFrame = 0;
+						dashFrame = -1;
 					} else if (dashFrame == w/4) {
 						DashHideText = true;
 					} else if (dashFrame == w*3/4) {
@@ -208,7 +291,7 @@ namespace Eight_Orbits.Entities {
 					pos = orbitCenter + n;
 					break;
 
-				default: throw new NotImplementedException();
+				default: return;//throw new NotImplementedException();
 			}
 
 			//collisions
@@ -218,43 +301,39 @@ namespace Eight_Orbits.Entities {
 			else if (pos.Y < HeadR) v.Y = Math.Abs(v.Y);
 			else if (pos.Y > W / 2 - HeadR) v.Y = -Math.Abs(v.Y);
 
-			else if (pos.X + pos.Y < C + HeadR * sqrt2 && v * new IVector(-1, -1) > 0) {
+			else if (pos.X + pos.Y < C + HeadR * sqrt2 && v * new IVector(-1, -1) >= 0) {
 				v.A += Math.PI / 4d;
 				v.Y = Math.Abs(v.Y);
 				v.A -= Math.PI / 4d;
-			} else if (W - pos.X + pos.Y < C + HeadR * sqrt2 && v * new IVector(1, -1) > 0) {
+			} else if (W - pos.X + pos.Y < C + HeadR * sqrt2 && v * new IVector(1, -1) >= 0) {
 				v.A -= Math.PI / 4d;
 				v.Y = Math.Abs(v.Y);
 				v.A += Math.PI / 4d;
-			} else if (W / 2 + pos.X - pos.Y < C + HeadR * sqrt2 && v * new IVector(-1, 1) > 0) {
+			} else if (W / 2 + pos.X - pos.Y < C + HeadR * sqrt2 && v * new IVector(-1, 1) >= 0) {
 				v.A += Math.PI - Math.PI / 4d;
 				v.Y = Math.Abs(v.Y);
 				v.A += Math.PI / 4d - Math.PI;
-			} else if (W + W / 2f - pos.X - pos.Y < C + HeadR * sqrt2 && v * new IVector(1, 1) > 0) {
+			} else if (W + W / 2f - pos.X - pos.Y < C + HeadR * sqrt2 && v * new IVector(1, 1) >= 0) {
 				v.A += Math.PI / 4d + Math.PI;
 				v.Y = Math.Abs(v.Y);
 				v.A += -Math.PI - Math.PI / 4d;
 			}
 		}
 
-		public void Draw(ref PaintEventArgs e) {
-			tail.Draw(ref e);
+		public void Draw(Graphics g) {
 			r = HeadR;
 			Bitmap bmp = new Bitmap((int) Math.Ceiling(r * 2), (int) Math.Ceiling(r * 2));
 			Graphics frame = Graphics.FromImage(bmp);
-			SizeF sz = e.Graphics.MeasureString(DisplayKey, new Font(Program.FONT, r-1));
+			SizeF sz = g.MeasureString(DisplayKey, new Font(Program.FONT, r-1));
 
 			frame.TranslateTransform(r, r);
 			frame.RotateTransform((float)(this.v.A / Math.PI * 180d + 90d));
 			frame.ScaleTransform((r - z) / r, 1);
 			frame.FillEllipse(new SolidBrush(color), -r, -r, r * 2, r * 2);
 			if (ContrastMode) frame.DrawEllipse(Pens.Black, .5f - r, .5f - r, r * 2 - 1, r * 2 - 1);
-			if (!DashHideText) frame.DrawString(DisplayKey, new Font(Program.FONT, r-1),	Brushes.Black, -sz.Width / 2, -sz.Height / 2);
+			if (!DashHideText) frame.DrawString(DisplayKey, new Font(Program.FONT, r-1),	Brushes.White, -sz.Width / 2, -sz.Height / 2);
 			
-			e.Graphics.DrawImage(bmp, (float) pos.X - r, (float) pos.Y - r);
-			
-			//key.Draw(ref e);
-			//return e;
+			g.DrawImage(bmp, (float) pos.X - r, (float) pos.Y - r);
 		}
 
 		public static string getKeyString(Keys k) {
@@ -264,8 +343,36 @@ namespace Eight_Orbits.Entities {
 				.Replace("DIVIDE", "/").Replace("MULTIPLY", "*").Replace("SUBTRACT", "-").Replace("ADD", "+").Replace("NUMPAD", "").Replace("DECIMAL", ".")
 				.Replace("OEMMINUS", "-").Replace("OEMPLUS", "=").Replace("OEMOPENBRACKETS", "[").Replace("OEM6", "]").Replace("OEM5", @"\")
 				.Replace("OEM1", ":").Replace("OEM7", "'").Replace("OEMCOMMA", "<").Replace("OEMPERIOD", ">").Replace("OEMQUESTION", "?")
-				.Replace("LEFT", ""+(char)8592).Replace("UP", ""+(char)8592).Replace("RIGHT", ""+(char)8594).Replace("DOWN", ""+(char)8595);
+				.Replace("LEFT", ""+(char)8592).Replace("UP", ""+(char)8593).Replace("RIGHT", ""+(char)8594).Replace("DOWN", ""+(char)8595);
 			return c;
+		}
+
+		private static Color generate_color() {
+			int a, r, g, b;
+			double x = R.NextDouble();
+
+			a = 255;
+			r = (int) Math.Round(Math.Pow(Math.Cos(Math.PI * (x + 0/3d)), 2) * 255);
+			g = (int) Math.Round(Math.Pow(Math.Cos(Math.PI * (x + 1/3d)), 2) * 255);
+			b = (int) Math.Round(Math.Pow(Math.Cos(Math.PI * (x + 2/3d)), 2) * 255);
+
+			return Color.FromArgb(a, r, g, b);
+		}
+
+		public override bool Equals(object obj) {
+			return this.GetHashCode() == obj.GetHashCode();
+		}
+
+		public override int GetHashCode() {
+			return this.keyCode.GetHashCode();
+		}
+
+		public static bool operator == (Head h, Head H) {
+			return h.keyCode.GetHashCode() == H.keyCode.GetHashCode();
+		}
+
+		public static bool operator != (Head h, Head H) {
+			return h.keyCode.GetHashCode() != H.keyCode.GetHashCode();
 		}
     }
 }

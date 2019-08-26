@@ -35,36 +35,39 @@ namespace Eight_Orbits.Properties {
             }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public float Scale {
             get {
                 return ((float)(this["Scale"]));
             }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public byte MaxBlast {
-            get {
-                return ((byte)(this["MaxBlast"]));
-            }
             set {
-                this["MaxBlast"] = value;
+                this["Scale"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public float BlastSpawnRate {
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public sbyte OrbSpawn {
             get {
-                return ((float)(this["BlastSpawnRate"]));
+                return ((sbyte)(this["OrbSpawn"]));
             }
             set {
-                this["BlastSpawnRate"] = value;
+                this["OrbSpawn"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("rare")]
+        public string BlastSpawn {
+            get {
+                return ((string)(this["BlastSpawn"]));
+            }
+            set {
+                this["BlastSpawn"] = value;
             }
         }
     }

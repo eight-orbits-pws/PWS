@@ -6,162 +6,225 @@ using static Eight_Orbits.Program;
 using Eight_Orbits.Properties;
 using Eight_Orbits.Entities;
 using System.Collections.Generic;
-using System.Timers;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Threading;
+using Neural_Network;
+using System.Threading.Tasks;
 
 namespace Eight_Orbits {
 	public partial class Window : Form {
-		//public Graphics cvs;
-		public System.Timers.Timer Updater = new System.Timers.Timer(1000D/60D);
-		//Timer updateVis = new Timer();
-
-		Rectangle PlayingArea;
+		//public System.Timers.Timer Updater = new System.Timers.Timer(1000D / 120D);
+		//public System.Timers.Timer VisualUpdater = new System.Timers.Timer(1000D / 60D);
 
 		HashSet<Keys> keydown = new HashSet<Keys>();
 		public Color MapColor = Color.FromArgb(255, 222, 222, 222);
 		public static long time = 0;
 		public static long Time = 0;
-		public static List<double> fps = new List<double>(64);
+		//public static List<double> fps = new List<double>(64);
 
-		public Thread update;
-		
+		public Label OutputTxt;
+
+		public Image background;
+		public event Action OnUpdateAnimation;
 
 		public Window() {
-            InitializeComponent();
-			Console.WriteLine(Screen.AllScreens[0].WorkingArea.ToString());
+			InitializeComponent();
+			OutputTxt = (Label) Controls[0];
+			OutputTxt.Text = "Hello World!";
+			this.MaximizeBox = false;
 			Show();
-			this.Location = Screen.AllScreens[0].WorkingArea.Location;
-            //Bounds = Screen.GetWorkingArea(new Point());
-			Bounds = Screen.AllScreens[0].WorkingArea;
-			W = Bounds.Width;
-			H = Bounds.Height;
-			C = W / 20f;
-			SZR = W / 1366f;
-			BackColor = Color.Black;
-            FormBorderStyle = FormBorderStyle.None;
-            WindowState = FormWindowState.Maximized;
-            DoubleBuffered = true;
-            Cursor.Hide();
 
-			PlayingArea = new Rectangle(0, 0, W, W / 2);
-			//update = new Thread(new ThreadStart(Update));
-			//Console.WriteLine(1000d/(double)(Updater.Interval));
-            Paint += Window_Paint;
+			if (AnimationsEnabled) {
+				this.Location = Screen.AllScreens[0].WorkingArea.Location;
+				Bounds = Screen.AllScreens[0].WorkingArea;
+				Width = W = Bounds.Width;
+				H = (int)(W * 9f / 16f);
+				C = W / 20f;
+				SZR = W / 1366f;
+				BackColor = Color.Black;
+				FormBorderStyle = FormBorderStyle.None;
+				WindowState = FormWindowState.Maximized;
+				DoubleBuffered = true;
+				Cursor.Hide();
+				
+				Paint += Window_Paint;
+				OutputTxt.Visible = false;
+			} else {
+				AutoScroll = true;
+				W = 1366;
+				H = 768;
+				C = W / 20f;
+				SZR = 1;
+				
+			}
+			
 			KeyDown += Window_KeyDown;
 			KeyUp += Window_KeyUp;
-
-            Updater.Elapsed += Update_Math;
-			if (AnimationsEnabled) Updater.Elapsed += Update_Visual;
-			Updater.Start();
-			//Updater.AutoReset = true;
 		}
 
-		private void Update_Visual(object sender, EventArgs e) {
-            Invalidate();
+		public void Update_Visual(object sender, EventArgs e) {
+			Update_Visual();
 		}
-		private void Update_Math(object sender, EventArgs e) {
-			time = DateTime.Now.Millisecond;
-			if (time < Time) fps.Insert(0, 1000d/(1000L + time - Time));
-			else fps.Insert(0, 1000d/(time - Time));
-			if (fps.Count == 64) fps.RemoveAt(63);
-			if (Tick%12==0) Console.WriteLine(fps.Average());
-			Time = time;
-			Program.Update();
-			Map?.Update();
-        }
 
+		public void Update_Visual() {
+			OnUpdateAnimation?.Invoke();
+			Invalidate();
+		}
+
+		//private volatile object update_lock = new { };
+		//private volatile bool updating = false;
+
+		bool running = false;
+		public void StartAsyncUpdate() {
+			if (running) return;
+			running = true;
+
+			Thread t = new Thread(AsyncUpdateMath);
+			t.IsBackground = false;
+			t.Priority = ThreadPriority.Highest;
+			t.Name = "Math_Thread";
+			t.IsBackground = false;
+			t.Start();
+		}
+
+		private async void AsyncUpdateMath() {
+			//if (!SyncUpdate) OnUpdateAnimation?.Invoke();
+			while (ApplicationRunning) {
+				if (running) await Task.Run((Action) Program.Update);
+				else SpinWait.SpinUntil(() => running);
+			}
+		}
+		
 		private void Window_KeyUp(object sender, KeyEventArgs e) {
 			keydown.Remove(e.KeyCode);
 			try {
-				if (state == States.INGAME) HEAD[e.KeyCode].key.Release();
+				if (Ingame && ActiveKeys.Contains(e.KeyCode)) HEADS[e.KeyCode].key.Release();
 			} catch (KeyNotFoundException) {
 				//no problem
 			}
 		}
-
+		
 		private void Window_KeyDown(object sender, KeyEventArgs e) {
-			if (keydown.Contains(e.KeyCode)) {
+			if (keydown.Contains(e.KeyCode) || e.KeyCode == Keys.NumLock || e.KeyCode == Keys.ShiftKey || e.KeyCode == Keys.Menu) return;
+			else keydown.Add(e.KeyCode);
+
+			Keys ekey = e.KeyCode;
+			if (e.KeyCode == Keys.Delete) ekey = Keys.Decimal;
+			if (e.KeyCode == Keys.Insert) ekey = Keys.NumPad0;
+			if (e.KeyCode == Keys.Clear) ekey = Keys.NumPad5;
+
+			if (e.KeyCode == Keys.F2) {
+				ContrastMode = !ContrastMode;
 				return;
-			} else {
-				keydown.Add(e.KeyCode);
 			}
 
-			if (e.KeyCode == Keys.F4) {
-				ContrastMode = !ContrastMode;
+			if (e.KeyCode == Keys.F3) {
+				new Neat(); /// create new BOT
+				Map.SetMaxPoints();
+				return;
+			}
+
+			if (e.KeyCode == Keys.F4 && !e.Alt) {
+				if (Neat.All.Count > 0) {
+					Neat toRemove = Neat.All.Last();
+					toRemove.Remove();
+					IKey.UpdateAll();
+				} Map.SetMaxPoints();
 				return;
 			}
 
 			switch (state) {
 				case States.NEWGAME:
 					//add new player
-					if (e.KeyCode == Keys.Enter) {
+					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) {
 						state = States.INGAME;
+						Ingame = true;
 						Map.StartGame();
 					} else if (e.KeyCode == Keys.Escape) {
-						Active.Clear();
-						HEAD.Clear();
+						HashSet<Neat> NeatCopy = new HashSet<Neat>(Neat.All);
+						foreach (Neat neat in NeatCopy) neat.Remove();
+						HashSet<Head> HeadCopy = new HashSet<Head>(HEADS.Values);
+						foreach (Head head in HeadCopy) head.Remove();
 						Map.MaxPoints = 0;
+						Leader = Keys.None;
 					} else if (0 <= e.KeyValue && e.KeyValue < 256) {
-						if (Active.Contains(e.KeyCode)) {
-							Active.Remove(e.KeyCode);
-							HEAD[e.KeyCode].Remove();
-							HEAD.Remove(e.KeyCode);
-						} else {
-							HEAD.Add(e.KeyCode, new Head(e.KeyCode));
-							Active.Add(e.KeyCode);
-							Map.SetMaxPoints();
+						lock (ActiveLock) {
+							if (ActiveKeys.Contains(ekey)) {
+								HEADS[ekey].Remove();
+							} else {
+								HEADS.Add(ekey, new Head(ekey));
+								ActiveKeys.Add(ekey);
+								Map.SetMaxPoints();
+							}
 						}
+						IKey.UpdateAll();
 					}
 					break;
 				case States.INGAME:
 					if (e.KeyCode == Keys.Escape) {
 						state = States.PAUSED;
-						Updater.Stop();
-					} else if (Active.Contains(e.KeyCode)) {
-						HEAD[e.KeyCode].Action();
+					Program.UpdateThread.Pause();
+						running = false;
+					} else if (ActiveKeys.Contains(ekey)) {
+						HEADS[ekey].Action();
 					} break;
 				case States.PAUSED:
 					if (e.KeyCode == Keys.Escape) {
 						state = States.INGAME;
-						Updater.Start();
+						Ingame = true;
+						if (SyncUpdate) UpdateThread.UnPause();
+						running = true;
 					} else if (e.KeyCode == Keys.Enter) {
 						Map.EndGame();
+						Map.Clear();
+						Map.phase = Phases.NONE;
 						state = States.NEWGAME;
-						
-						Updater.Start();
+						lock (ActiveLock) foreach (Keys key in ActiveKeys) HEADS[key].v = IVector.Up;
+						Ingame = false;
+						if (SyncUpdate) UpdateThread.UnPause();
+
 					}
 					break;
 			}
 		}
+		
+		public volatile object draw_lock = new { };
+		private volatile bool drawing = false;
+		
+		public void Window_Paint(object sender, PaintEventArgs e) {
+			Graphics g = e.Graphics;
+			g.CompositingQuality = CompositingQuality.HighSpeed;
+			g.SmoothingMode = SmoothingMode.AntiAlias;
+			g.InterpolationMode = InterpolationMode.Low;
+			g.TextRenderingHint = TextRenderingHint.AntiAlias;
 
-        private void Window_Paint(object sender, PaintEventArgs e) {
-			//e.Graphics.Flush(System.Drawing.Drawing2D.FlushIntention.Sync);
-			e.Graphics.CompositingQuality = CompositingQuality.HighSpeed;
-			e.Graphics.SmoothingMode = SmoothingMode.HighSpeed;
-			e.Graphics.InterpolationMode = InterpolationMode.Low;
-			e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
-			e.Graphics.Clear(Color.Black);
+			if (!drawing) {
+				lock (draw_lock) {
+					drawing = true;
+					Thread.CurrentThread.IsBackground = true;
+					Map?.Draw(g);
 
-			
-			Map.Draw(ref e);
+					DrawWhite?.Invoke(g);
+					Blast.DrawAll(g);
+					DrawTail?.Invoke(g);
+					DrawBullet?.Invoke(g);
+					DrawHead?.Invoke(g);
+					DrawKeys?.Invoke(g);
+					DrawAnimation?.Invoke(g);
 
-			DrawWhite?.Invoke(ref e);
-			DrawBlast?.Invoke(ref e);
-			DrawTail?.Invoke(ref e);
-			DrawBullet?.Invoke(ref e);
-			DrawHead?.Invoke(ref e);
-			DrawKeys?.Invoke(ref e);
-			AnimationControl.Draw(ref e);
-			
-			if (Leader != Keys.None && HEAD[Leader].act != Activities.DEAD) Map.DrawCrown(ref e);
+					if (ActiveKeys.Contains(Leader))
+						Map.DrawCrown(g);
 
-			MVP.Draw(ref e);
-			e.Graphics.Flush(FlushIntention.Flush);
+					MVP.Draw(g);
+					drawing = false;
+				}
+			}
+		}
 
-			
-        }
+		public void Clear() {
+			DrawWhite = DrawBlast = DrawBullet = DrawAnimation = null;
+		}
 
 		public event PaintEvent DrawWhite;
 		public event PaintEvent DrawBlast;
@@ -169,5 +232,37 @@ namespace Eight_Orbits {
 		public event PaintEvent DrawBullet;
 		public event PaintEvent DrawHead;
 		public event PaintEvent DrawKeys;
-    }
+		public event PaintEvent DrawAnimation;
+
+		delegate void debugtext(string txt);
+		
+		volatile object writelock = new { };
+		public void writeln() {
+			writeln("");
+		}
+
+		public void writeln<T>(T obj) {
+			writeln(obj.ToString());
+		}
+
+		public void writeln(string txt) {
+			if (OutputTxt.InvokeRequired) {
+				Invoke(new debugtext(writeln), txt);
+			} else {
+				OutputTxt.Text += "\n" + txt;
+			}
+		}
+
+		public void write<T>(T obj) {
+			write(obj.ToString());
+		}
+
+		public void write(string txt) {
+			if (OutputTxt.InvokeRequired) {
+				Invoke(new debugtext(write), txt);
+			} else {
+				OutputTxt.Text += txt;
+			}
+		}
+	}
 }
