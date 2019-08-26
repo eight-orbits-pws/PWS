@@ -121,6 +121,7 @@ namespace Eight_Orbits {
 
 			if (e.KeyCode == Keys.F3) {
 				new Neat(); /// create new BOT
+                IKey.UpdateAll();
 				Map.SetMaxPoints();
 				return;
 			}
@@ -164,7 +165,8 @@ namespace Eight_Orbits {
 				case States.INGAME:
 					if (e.KeyCode == Keys.Escape) {
 						state = States.PAUSED;
-					Program.UpdateThread.Pause();
+                        if (SyncUpdate)
+					        Program.UpdateThread.Pause();
 						running = false;
 					} else if (ActiveKeys.Contains(ekey)) {
 						HEADS[ekey].Action();

@@ -27,10 +27,9 @@ namespace Neural_Network {
 		public List<Neuron> Neurons { get { return neurons; } }
 		public OutputNeuron Output { get { return output; } }
 		public int Count { get { return neurons.Count; } }
-		private Ray ray;
 
 		public Neuron this[int index] { get {
-				if (index < 0) return input[1-index];
+				if (index < 0) return input[-1-index];
 				else if (index == 0) return output;
 				else return neurons[index-1];
 			}
@@ -43,10 +42,10 @@ namespace Neural_Network {
 
 		public Neat() {
 			// ---
-			for (int i = 0; i < 64; i++) input.Add(new InputNeuron(this));
-			neurons = new List<Neuron>(256);
-			neurons.Add(new StdNeuron(this));
-			output = new OutputNeuron(this);
+			for (int i = 0; i < 64; i++) input.Add(new InputNeuron(this, -i - 1));
+			neurons = new List<Neuron>();
+            for (int i = 0; i < 32; i++) neurons.Add(new StdNeuron(this, i + 1));
+			output = new OutputNeuron(this, 0);
 			create();
 			// ---
 
@@ -86,9 +85,21 @@ namespace Neural_Network {
 		}
 
 		private void create() {
-			foreach (InputNeuron node in input) node.create(0);
-			foreach (Neuron node in neurons) node.create(1);
-		}
+            Random random = new Random();
+
+            foreach (InputNeuron node in input)
+                foreach (StdNeuron neuron in neurons)
+                    if (random.NextDouble() < 0.2d)
+                        node.Axons.Add(new Axon(neuron.Index, random.NextDouble() * 2 - 1));
+
+            foreach (StdNeuron node in neurons)
+            {
+                if (random.NextDouble() < 0.5d)
+                    node.Axons.Add(new Axon(0, random.NextDouble() * 2 - 1));
+                if (random.NextDouble() < 0.5d)
+                    output.Axons.Add(new Axon(node.Index, random.NextDouble() * 2 - 1));
+            }
+        }
 		
 		private void fetch_input() {
 			//inorbit, 0, r, v
@@ -103,9 +114,9 @@ namespace Neural_Network {
 				return;
 			}
 
-			if (head.Died || state != States.INGAME) return;
+            if (head.Died) { return; };
 			
-			ray.Set(head.pos, head.v);
+			Ray ray = new Ray(head.pos, head.v);
 			Dictionary<double, byte> distances = new Dictionary<double, byte>();
 			double distance;
 			byte info;
@@ -126,11 +137,12 @@ namespace Neural_Network {
 					for (int j = Blast.All.Count - 1; j >= 0; j--)
 						if (ray.Hit(Blast.All[j])) distances.Add(ray.Distance(Blast.All[j]), 2);
 
+                    lock (ActiveLock)
 					foreach (Keys k in ActiveKeys)
 						if (k != key && ray.Hit(HEADS[k]))
 							distances.Add(ray.Distance(HEADS[k]), 1);
 
-					for (int j = Orb.All.Count - 1; j >= 0; j--)
+					lock (Orb.OrbLock) for (int j = Orb.All.Count - 1; j >= 0; j--)
 						if (ray.Hit(Orb.All[j]) && Orb.All[j].state != OrbStates.WHITE) {
 							if (Orb.All[j].noOwner()) distances.Add(ray.Distance(Orb.All[j]), 2);
 							else distances.Add(ray.Distance(Orb.All[j]), 3);
@@ -150,31 +162,23 @@ namespace Neural_Network {
 			}
 		}
 		
-		private async void update() {
-			temp_update();
-			if (ApplicationRunning) return;
+		private void update() {
+            if (Map.phase != Phases.NONE)
+                return;
 
-			await Task.Run((Action) fetch_input);
-			
-			foreach (Neuron nr in input) await nr.calc(this);
-			foreach (Neuron nr in neurons) await nr.calc(this);
-			
-			await output.calc(this);
-			bool outp = output.Value > 0;
-			if (outp && !lastOut) Fire?.Invoke();
-			else if (!outp && lastOut) KeyUp?.Invoke();
-			lastOut = outp;
+			fetch_input();
 
-			Reset?.Invoke();
-		}
+            foreach (Neuron nr in input) nr.fireAxons(this);
+            foreach (Neuron nr in neurons)  nr.fireAxons(this);
+            output.fireAxons(this);
 
-		private void temp_update() {
-			bool outp = lastOut;
-			if (R.NextDouble() < 1 / 4d) outp = !lastOut;
+            foreach (Neuron nr in input) nr.calc(this);
+            foreach (Neuron nr in neurons) nr.calc(this);
+            output.calc(this);
 
-			if (outp && !lastOut) Fire?.Invoke();
-			else if (!outp && lastOut) KeyUp?.Invoke();
-
+            bool outp = output.Value > 0;
+            if (outp && !lastOut) Fire?.Invoke(); // Check if it *started* pressing the key
+			else if (!outp && lastOut) KeyUp?.Invoke(); // Check if it *stopped* pressing the key
 			lastOut = outp;
 		}
 
@@ -187,47 +191,27 @@ namespace Neural_Network {
 		}
 	}
 
-	class Axon {
-		int sendto = 0;
-		double value = 0;
-		bool enabled = true;
+    struct Axon {
 
-		public int SendTo { get { return sendto; } }
-		public double Value { get { return value; } }
+        public int destination;
+        public double weight;
 
-		public Axon(Neuron sender, int sendto) {
-			sender.Fire += calc;
-			this.sendto = sendto;
-			this.value = MathNNW.R;
-		}
+        public Axon(int destination, double weight) {
+            this.destination = destination;
+            this.weight = weight;
+        }
 
-		public async Task calc(Neat sender, double d) {
-			if (!enabled) return;
-			if (double.IsNaN(d)) throw new ArithmeticException();
-			try {
-				sender[sendto].add(d * value);
-			} catch (NullReferenceException) {
-				enabled = false;
-			}
-		}
-
-		public void mutate() {
-			throw new NotImplementedException();
-		}
-	}
+    }
 
 	class InputNeuron : Neuron {
-		public InputNeuron(Neat sender) : base(sender) {}
+		public InputNeuron(Neat sender, int index) : base(sender, index) {}
 
-		public override event FireEvent Fire;
-
-		public override async Task calc(Neat nnw) {
+		public override void calc(Neat nnw) {
 			value = input;
-			await Fire.Invoke(nnw, value);
+            input = 0;
 		}
 
 		protected override void remove() {
-			Fire = null;
 			axons = null;
 		}
 	}
@@ -238,38 +222,36 @@ namespace Neural_Network {
 		//private double value = 0;
 		//private List<Axon> axons = new List<Axon>();
 
-		public StdNeuron(Neat sender) : base(sender) { }
-		
-		public override event FireEvent Fire;
-		public override async Task calc(Neat nnw) {
-			value = MathNNW.ReLU(bias + input);
-			await Fire?.Invoke(nnw, value);
-		}
+		public StdNeuron(Neat sender, int index) : base(sender, index) { }
+
+		public override void calc(Neat nnw) {
+			value = MathNNW.Satlins(input + bias);
+            input = 0;
+        }
 
 		protected override void remove() {
-			Fire = null;
 			axons = null;
 		}
 	}
 
 	class OutputNeuron : Neuron {
-		public OutputNeuron(Neat sender) : base(sender) { }
+		public OutputNeuron(Neat sender, int index) : base(sender, index) { }
 
-		public override async Task calc(Neat sender) {
-			await Task.Run(() => value = MathNNW.Output(input + bias));
-		}
+		public override void calc(Neat nnw) {
+			value = MathNNW.Satlins(input + bias);
+            input = 0;
+        }
 		
-		public override event FireEvent Fire;
 		protected override void remove() { }
 	}
 
 	static class MathNNW {
-		public static double ReLU(double x) { return Max(0, x); }
-		public static double Satlin(double x) { return Max(0, Min(x, 1)); }
-		public static double Satlins(double x) { return Max(-1, Min(x, 1)); }
-		public static double Output(double x) { return Max(0, Sign(x)); } // 0 of 1
-		public static double Radial(double x) { return Max(0, 1D-Abs(x)); }
-		public static double Sinus(double x) { return Sin(x); }
-		public static double R { get { return (new Random()).NextDouble(); } }
+		public static double ReLU(double x) => Max(0, x);
+		public static double Satlin(double x) => Max(0, Min(x, 1));
+		public static double Satlins(double x) => Max(-1, Min(x, 1));
+		public static double Output(double x) => Max(0, Sign(x)); // 0 or 1
+		public static double Radial(double x) => Max(0, 1D-Abs(x));
+		public static double Sinus(double x) => Sin(x);
+		public static double R { get { return new Random().NextDouble(); } }
 	}
 }

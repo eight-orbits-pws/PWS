@@ -32,8 +32,6 @@ namespace Neural_Network {
 		public int Index { get { return index; } }
 		public List<Axon> Axons { get { return axons; } }
 
-		public abstract event FireEvent Fire;
-
 		public Neuron(Neat sender) {
 			sender.Reset += reset;
 			sender.OnRemove += remove;
@@ -42,19 +40,21 @@ namespace Neural_Network {
 		public Neuron(Neat sender, int index) : this(sender) {
 			this.index = index;
 			this.input = 0;
-			this.bias = 0;
+			this.bias = MathNNW.R * 2 - 1;
 			this.value = 0;
 		}
 
-		public abstract Task calc(Neat nnw);
+		public abstract void calc(Neat nnw);
+
+        public void fireAxons(Neat nnw) {
+            if (double.IsNaN(value)) throw new ArithmeticException();
+            foreach (Axon axon in axons) {
+                nnw[axon.destination].add(value * axon.weight);
+            }
+        }
 		
 		public void add(double d) {
 			input += d;
-		}
-
-		public void create(int lastneuron) {
-			int L = lastneuron - Math.Max(0, index);
-			for (int i = 0; i <= L; i++) if (MathNNW.R < 1d) axons.Add(new Axon(this, i));
 		}
 
 		public void mutate() {

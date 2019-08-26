@@ -64,7 +64,6 @@ namespace Eight_Orbits.Entities {
 
 			this.key = new IKey(keyCode, DisplayKey, color);
 			ActiveKeys.Add(keyCode);
-			IKey.UpdateAll();
 
 			nnw.SetKey(keyCode);
 			nnw.Fire += Action;
