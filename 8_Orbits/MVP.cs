@@ -16,37 +16,71 @@ namespace Eight_Orbits {
 		public static volatile object RecordsLock = new { };
 		private static Stat mvp = new Stat();
 
-		private static Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN);
-		private static Animatable Disappear = new Animatable(1, 0, 36, AnimationTypes.COS);
+		private static readonly Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN);
+		private static readonly Animatable Disappear = new Animatable(1, 0, 36, AnimationTypes.COS);
 		private static bool Displaying = true;
 		private static string DisplayText = "Prepare!";
-		private static Color color = Color.FromArgb(64, 32, 32, 32);
+		private static readonly Color color = Color.FromArgb(96, 32, 32, 32);
 
 		private static bool winner = false;
 
-		public static void Add(MVPTypes type) {
-			records.Add(new Stat(type));
-		}
+		public static void Add(MVPTypes type) => records.Add(new Stat(type));
 
 		public static void Add(MVPTypes type, string hero) {
-			records.Add(new Stat(hero, type));
+			if (type == MVPTypes.GHOSTKILL && Displaying == true) {
+				new Thread(() => {
+					DisplayText = "";
+					int tick = Tick + 1;
+					SpinWait.SpinUntil(() => Tick > tick);
+
+					// okay, so one can win with a ghostkill. help
+					// copy paste of Analyze
+					Keys leader = Keys.None;
+					Keys second = Keys.None;
+
+					foreach (Keys p in InactiveKeys) {
+						if (leader == Keys.None || HEADS[leader].Points < HEADS[p].Points) {
+							second = leader;
+							leader = p;
+						} else if (second == Keys.None || HEADS[second].Points < HEADS[p].Points) {
+							second = p;
+						}
+					}
+
+					if (Head.getKeyString(leader) == hero && HEADS[leader].Points > HEADS[second].Points + 1) {
+						// won with a ghostkill O_o
+						DisplayText = $"Ghostkill win by {hero}";
+						Map.EndGame();
+						Leader = leader;
+						Clear();
+						HEADS[leader].IsLeader = true;
+					} else if (Head.getKeyString(second) == hero && HEADS[leader].Points - HEADS[second].Points < 2 && HEADS[leader].Points >= Map.MaxPoints) {
+						// so leader won, but now seconds is in reached because of the ghostkill O_o
+						Map.phase = Phases.ENDROUND;
+						DisplayText = $"{hero} denied the win!";
+					} else {
+						DisplayText = "Ghostkill!";
+					}
+
+				}).Start();
+			} 
+			else records.Add(new Stat(hero, type));
 		}
 
-		public static void Add(MVPTypes type, string hero, string special) {
-			records.Add(new Stat(hero, type, special));
-		}
+		public static void Add(MVPTypes type, string hero, string special) => records.Add(new Stat(hero, type, special));
 
 		public static void Analyze() {
 			//get points
 			Keys leader;
 			Keys second = Keys.None;
-			if (ActiveKeys.Count == 1) {
+
+			if (ActiveKeys.Count == 1)
 				leader = ActiveKeys[0];
-			} else
-				leader = InactiveKeys[0];
+			else
+				leader = Keys.None;
 
 			foreach (Keys p in InactiveKeys) {
-				if (HEADS[leader].Points < HEADS[p].Points) {
+				if (leader == Keys.None || HEADS[leader].Points < HEADS[p].Points) {
 					second = leader;
 					leader = p;
 				} else if (second == Keys.None || HEADS[second].Points < HEADS[p].Points) {
@@ -85,12 +119,11 @@ namespace Eight_Orbits {
 				}
 			}
 
-			SetMessage();
+			set_message();
 			Show();
 
 			if (winner) {
 				Map.EndGame();
-				//Winner?.Invoke();
 				Leader = leader;
 			}
 
@@ -117,7 +150,7 @@ namespace Eight_Orbits {
 			winner = false;
 		}
 
-		private static void SetMessage() {
+		private static void set_message() {
 			//convert mvp to string
 			switch (mvp.Type) {
 				case MVPTypes.POINTS:
@@ -133,7 +166,7 @@ namespace Eight_Orbits {
 					DisplayText = mvp.Hero + " ghostkill!";
 					break;
 
-				case MVPTypes.ASSIST:
+				case MVPTypes.ASSIST: // deprecated
 					DisplayText = mvp.Hero + " assist-kill on " + mvp.Special;
 					break;
 
@@ -146,23 +179,23 @@ namespace Eight_Orbits {
 					break;
 
 				case MVPTypes.COLLATERAL_ACE:
-					DisplayText = "Collateral Ace!";
+					DisplayText = "Collateral ace!";
 					break;
 
 				case MVPTypes.ACE_WINNER:
-					DisplayText = "Won with Ace!";
+					DisplayText = "Victory royale!";
 					break;
 
 				case MVPTypes.COLLATERAL_ACE_WINNER:
-					DisplayText = "Collateral Ace! Win deserved.";
+					DisplayText = "Collateral ace victory royale!";
 					break;
 
 				case MVPTypes.WINNER:
-					DisplayText = mvp.Hero + " won!";
+					DisplayText = win_message(mvp.Hero);
 					break;
 
 				case MVPTypes.FLAWLESS:
-					DisplayText = "Flawless!";
+					DisplayText = "Flawless victory!";
 					break;
 
 				case MVPTypes.EARLY_KILL:
@@ -202,20 +235,39 @@ namespace Eight_Orbits {
 				SizeF sz = g.MeasureString(DisplayText, font);
 
 				g.FillRectangle(new SolidBrush(color), -W / 2, -50, W, 100);
-				g.DrawString(DisplayText, font, Brushes.Black, -sz.Width / 2, -sz.Height / 2);
+				g.DrawString(DisplayText, font, Program.ContrastMode? Brushes.White : Brushes.Black, -sz.Width / 2, -sz.Height / 2);
 			}
 			g.ResetTransform();
 		}
+
+		private static string win_message(string hero) {
+			List<string> msg = new List<string>() {
+				$"{hero}!",
+				$"{hero} won!",
+				$"{hero} has won!",
+				$"{hero} victory!",
+				$"Victory to {hero}!",
+				$"{hero} defeated y'all!",
+				$"{hero} seems OP",
+				$"Lucky {hero}",
+				$"{hero} was top fragging",
+				$"Congrats to {hero}!",
+				$"Y'all got slain by {hero}"
+			};
+			
+			return msg[R.Next(msg.Count)];
+		}
 	}
 
+	
 	class Stat {
 		private string hero;
 		private MVPTypes type;
 		private string special;
 
-		public string Hero { get { return hero; } }
-		public MVPTypes Type { get { return type; } }
-		public string Special { get { return special; } }
+		public string Hero => hero;
+		public MVPTypes Type => type;
+		public string Special => special;
 
 		public Stat() {
 			this.hero = "";
