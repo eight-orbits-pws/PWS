@@ -6,4 +6,4 @@ C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Re
 C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\8_Orbits.csproj.GenerateResource.Cache
 C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\Eight Orbits.exe
 C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\Eight Orbits.pdb
-C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\8_Orbits.csprojResolveAssemblyReference.cache
+C:\Users\E6422-i5\Documents\Visual Studio 2015\Projects\8_Orbits\8_Orbits\obj\Release\8_Orbits.csproj.CoreCompileInputs.cache

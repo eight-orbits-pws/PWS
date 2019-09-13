@@ -22,6 +22,7 @@ namespace Eight_Orbits {
 		public static long time = 0;
 		public static long Time = 0;
 		//public static List<double> fps = new List<double>(64);
+		public event Action UpdateColors;
 
 		public Label OutputTxt;
 
@@ -59,8 +60,8 @@ namespace Eight_Orbits {
 				
 			}
 			
-			KeyDown += Window_KeyDown;
-			KeyUp += Window_KeyUp;
+			KeyDown += window_keydown;
+			KeyUp += window_keyup;
 		}
 
 		public void Update_Visual(object sender, EventArgs e) {
@@ -96,41 +97,74 @@ namespace Eight_Orbits {
 			}
 		}
 		
-		private void Window_KeyUp(object sender, KeyEventArgs e) {
+		private void window_keyup(object sender, KeyEventArgs e) {
 			keydown.Remove(e.KeyCode);
-			try {
-				if (Ingame && ActiveKeys.Contains(e.KeyCode)) HEADS[e.KeyCode].key.Release();
-			} catch (KeyNotFoundException) {
-				//no problem
-			}
+			if (Ingame && ActiveKeys.Contains(e.KeyCode)) HEADS[e.KeyCode].key.Release();
 		}
 		
-		private void Window_KeyDown(object sender, KeyEventArgs e) {
-			if (keydown.Contains(e.KeyCode) || e.KeyCode == Keys.NumLock || e.KeyCode == Keys.ShiftKey || e.KeyCode == Keys.Menu) return;
+		private void window_keydown(object sender, KeyEventArgs e) {
+
+			if (keydown.Contains(e.KeyCode) || e.KeyCode == Keys.NumLock || e.KeyCode == Keys.ShiftKey || e.KeyCode == Keys.Menu)
+				return;
 			else keydown.Add(e.KeyCode);
 
 			Keys ekey = e.KeyCode;
-			if (e.KeyCode == Keys.Delete) ekey = Keys.Decimal;
-			if (e.KeyCode == Keys.Insert) ekey = Keys.NumPad0;
-			if (e.KeyCode == Keys.Clear) ekey = Keys.NumPad5;
+			if (e.KeyCode == Keys.Delete)
+				ekey = Keys.Decimal;
+			else if (e.KeyCode == Keys.Insert)
+				ekey = Keys.NumPad0;
+			else if (e.KeyCode == Keys.Clear)
+				ekey = Keys.NumPad5;
 
-			if (e.KeyCode == Keys.F2) {
+			else if (e.KeyCode == Keys.F2) {
 				ContrastMode = !ContrastMode;
 				return;
-			}
-
-			if (e.KeyCode == Keys.F3) {
-				new Neat(); /// create new BOT
-				Map.SetMaxPoints();
-				return;
-			}
-
-			if (e.KeyCode == Keys.F4 && !e.Alt) {
-				if (Neat.All.Count > 0) {
-					Neat toRemove = Neat.All.Last();
-					toRemove.Remove();
+			} else if (e.KeyCode == Keys.F3) {
+				if (state == States.NEWGAME && Neat.All.Count < 22) {
+					new Neat(); /// create new BOT
 					IKey.UpdateAll();
-				} Map.SetMaxPoints();
+					Map.SetMaxPoints();
+				}
+				return;
+			} 
+			
+			else if (e.KeyCode == Keys.F4 && !e.Alt) {
+				if (state == States.NEWGAME) {
+					if (Neat.All.Count > 0) {
+						Neat toRemove = Neat.All.Last();
+						toRemove.Remove();
+						IKey.UpdateAll();
+					}
+					Map.SetMaxPoints();
+				}
+				return;
+			} 
+			
+			else if (e.KeyCode == Keys.F9) {
+				if (ActiveKeys.Count == 0 || InactiveKeys.Count == 0)
+					return;
+
+				HEADS[InactiveKeys[0]].Reward(0, ActiveKeys[0]);
+				HEADS[ActiveKeys[0]].Die();
+				return;
+			} 
+			
+			else if (e.KeyCode == Keys.F5) {
+				switch (Gamemode) {
+					case Gamemodes.DEFAULT:
+						Gamemode = Gamemodes.CHAOS_RED;
+						break;
+					case Gamemodes.CHAOS_RED:
+						Gamemode = Gamemodes.CHAOS_RAINBOW;
+						break;
+					case Gamemodes.CHAOS_RAINBOW:
+						Gamemode = Gamemodes.DEFAULT;
+						break;
+
+				}
+				foreach (Head head in HEADS.Values)
+					head.NewColor(Gamemode == Gamemodes.CHAOS_RED);
+				UpdateColors?.Invoke();
 				return;
 			}
 
@@ -138,9 +172,9 @@ namespace Eight_Orbits {
 				case States.NEWGAME:
 					//add new player
 					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) {
-						state = States.INGAME;
-						Ingame = true;
 						Map.StartGame();
+						Ingame = true;
+						state = States.INGAME;
 					} else if (e.KeyCode == Keys.Escape) {
 						HashSet<Neat> NeatCopy = new HashSet<Neat>(Neat.All);
 						foreach (Neat neat in NeatCopy) neat.Remove();
@@ -178,6 +212,7 @@ namespace Eight_Orbits {
 					} else if (e.KeyCode == Keys.Enter) {
 						Map.EndGame();
 						Map.Clear();
+						//Map.RoundsPassed = 0;
 						Map.phase = Phases.NONE;
 						state = States.NEWGAME;
 						lock (ActiveLock) foreach (Keys key in ActiveKeys) HEADS[key].v = IVector.Up;
@@ -188,14 +223,14 @@ namespace Eight_Orbits {
 					break;
 			}
 		}
-		
+
 		public volatile object draw_lock = new { };
 		private volatile bool drawing = false;
 		
 		public void Window_Paint(object sender, PaintEventArgs e) {
 			Graphics g = e.Graphics;
 			g.CompositingQuality = CompositingQuality.HighSpeed;
-			g.SmoothingMode = SmoothingMode.AntiAlias;
+			g.SmoothingMode = SmoothingMode.HighQuality;
 			g.InterpolationMode = InterpolationMode.Low;
 			g.TextRenderingHint = TextRenderingHint.AntiAlias;
 

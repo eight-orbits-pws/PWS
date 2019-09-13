@@ -10,17 +10,17 @@ using System.Threading;
 
 namespace Eight_Orbits {
 	class World {
-		int MaxOrbs = 256;
+		public int MaxOrbs = 256;
 		int orbSpawn = Settings.Default.OrbSpawn;
 		public int StartRoundTime = 0;
 		int EndRoundTime = 180;
 		int EndGameTime = 300;
 
-		byte RoundsPassed = 0;
+		public byte RoundsPassed = 0;
 		public BlastSpawn blastSpawn = (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
 
-		HashSet<Orbit> orbits = new HashSet<Orbit>();
-		public HashSet<Orbit> Orbits { get { return orbits; } }
+		private HashSet<Orbit> orbits = new HashSet<Orbit>();
+		public HashSet<Orbit> Orbits => orbits;
 		IPoint tempCenter;
 
 		private int tick = 0;
@@ -45,7 +45,12 @@ namespace Eight_Orbits {
 		
 		public void SetMap() {
 			//foreach (Orbit orbit in orbits) orbit.Remove();
-			this.orbits = maps.Random;
+			HashSet<Orbit> temp;
+			do {
+				temp = maps.Random;
+			} while (this.orbits == temp && RoundsPassed > 0);
+
+			this.orbits = temp;
 		}
 
 		public void Update() {
@@ -88,6 +93,8 @@ namespace Eight_Orbits {
 		}
 
 		public void spawnOrb() {
+			if (Orb.All.Count >= this.MaxOrbs) return;
+
 			byte i = 0;
 			do {
 				new Orb(true);
@@ -397,6 +404,10 @@ namespace Eight_Orbits {
 				Me.Add(new Orbit(.595f, .5f, .12f));
 				Me.Add(new Orbit(.52f, .85f, .06f));
 				Me.Add(new Orbit(.875f, .85f, .05f));
+			
+				//Slash.Add(new Orbit(2.5f/28f, 11.5f/14f, 1/15f));
+				//Slash.Add(new Orbit(6/28f, 10/14f, 1/15f));
+				//Slash.Add(new Orbit(6/28f, 10/14f, 1/15f));
 			}
 
 			public static HashSet<Orbit> fromMapName(MapNames name) {
@@ -428,6 +439,7 @@ namespace Eight_Orbits {
 			public static HashSet<Orbit> Ring = new HashSet<Orbit>();
 			public static HashSet<Orbit> Wave = new HashSet<Orbit>();
 			public static HashSet<Orbit> Me = new HashSet<Orbit>();
+			//public static HashSet<Orbit> Slash = new HashSet<Orbit>();
 
 		}
 	}

@@ -28,7 +28,7 @@ namespace Eight_Orbits.Entities {
 		private Animatable contrast_color = new Animatable(0, 5);
 
 		private byte id = 0;
-		public byte ID { get { return id; } }
+		public byte ID => id;
 
 		public Orb() : this(false) { }
 
@@ -44,10 +44,12 @@ namespace Eight_Orbits.Entities {
 			Map.OnClearRemove += Remove;
 			OnUpdate += Update;
 			window.DrawWhite += Draw;
+			window.UpdateColors += update_color;
 		}
 
 		public void Remove() {
 			OnUpdate -= Update;
+			window.UpdateColors -= update_color;
 			lock (OrbLock) All.Remove(this);
 		}
 
@@ -207,6 +209,10 @@ namespace Eight_Orbits.Entities {
 
 		public bool noOwner() {
 			return this.owner == Keys.None;
+		}
+
+		private void update_color() {
+			if (this.owner != Keys.None) this.color = HEADS[owner].color;
 		}
     }
 }

@@ -47,17 +47,19 @@ namespace Eight_Orbits {
 						}
 					}
 
-					if (Head.getKeyString(leader) == hero && HEADS[leader].Points > HEADS[second].Points + 1) {
+					if (Head.getKeyString(leader) == hero && HEADS[leader].Points > HEADS[second].Points + 1 && HEADS[leader].Points >= Map.MaxPoints) {
 						// won with a ghostkill O_o
 						DisplayText = $"Ghostkill win by {hero}";
 						Map.EndGame();
 						Leader = leader;
 						Clear();
-						HEADS[leader].IsLeader = true;
-					} else if (Head.getKeyString(second) == hero && HEADS[leader].Points - HEADS[second].Points < 2 && HEADS[leader].Points >= Map.MaxPoints) {
+						//HEADS[leader].IsLeader = true;
+						//} else if (Head.getKeyString(second) == hero && HEADS[leader].Points - HEADS[second].Points < 2 && HEADS[leader].Points >= Map.MaxPoints) {
+					} else if (Map.phase == Phases.ENDGAME && HEADS[leader].Points - HEADS[second].Points < 2) {
 						// so leader won, but now seconds is in reached because of the ghostkill O_o
 						Map.phase = Phases.ENDROUND;
-						DisplayText = $"{hero} denied the win!";
+						Map.RoundsPassed--;
+						DisplayText = $"{hero} denied the win";
 					} else {
 						DisplayText = "Ghostkill!";
 					}
@@ -129,7 +131,7 @@ namespace Eight_Orbits {
 
 			Clear();
 
-			HEADS[leader].IsLeader = true;
+			//HEADS[leader].IsLeader = true;
 		}
 
 		public static bool Flawless() {
@@ -301,9 +303,9 @@ namespace Eight_Orbits {
 		Head HEAD;
 
 		public Assist(Head head, Head HEAD) {
-			if (SyncUpdate && ActiveKeys.Count <= 12 && !bounced.Contains(head.keyCode) && !bounced.Contains(HEAD.keyCode)) {
-				bounced.Add(head.keyCode);
-				bounced.Add(head.keyCode);
+			if (SyncUpdate && ActiveKeys.Count <= 12 && !bounced.Contains(head.KeyCode) && !bounced.Contains(HEAD.KeyCode)) {
+				bounced.Add(head.KeyCode);
+				bounced.Add(head.KeyCode);
 
 				this.head = head;
 				this.HEAD = HEAD;
@@ -317,8 +319,8 @@ namespace Eight_Orbits {
 			if (Thread.CurrentThread.IsBackground) await WaitUntilTick(Tick + 13);
 
 			OnKill -= kill_confirmed;
-			bounced.Remove(this.head.keyCode);
-			bounced.Remove(this.HEAD.keyCode);
+			bounced.Remove(this.head.KeyCode);
+			bounced.Remove(this.HEAD.KeyCode);
 		}
 
 		private void kill_confirmed(Head killer, Head victim) {

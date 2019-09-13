@@ -71,7 +71,7 @@ namespace Eight_Orbits.Entities {
 		public void Collect(Head head) {
 			for (int i = Orb.All.Count - 1; i >= 0; i--) {
 				Orb orb = Orb.All[i];
-				if (head.pos * orb.pos < BlastRange + OrbR && orb.owner != head.keyCode && !orb.isBullet) head.Eat(orb.ID);
+				if (head.pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat(orb.ID);
 			}
 		}
 
