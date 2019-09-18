@@ -17,7 +17,7 @@ namespace Eight_Orbits {
 		int EndGameTime = 300;
 
 		public byte RoundsPassed = 0;
-		public BlastSpawn blastSpawn = (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
+		public BlastSpawn blastSpawn = BlastSpawn.ONE;//(Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
 
 		private HashSet<Orbit> orbits = new HashSet<Orbit>();
 		public HashSet<Orbit> Orbits => orbits;

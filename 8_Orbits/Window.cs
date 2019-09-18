@@ -14,14 +14,10 @@ using System.Threading.Tasks;
 
 namespace Eight_Orbits {
 	public partial class Window : Form {
-		//public System.Timers.Timer Updater = new System.Timers.Timer(1000D / 120D);
-		//public System.Timers.Timer VisualUpdater = new System.Timers.Timer(1000D / 60D);
-
 		HashSet<Keys> keydown = new HashSet<Keys>();
 		public Color MapColor = Color.FromArgb(255, 222, 222, 222);
 		public static long time = 0;
 		public static long Time = 0;
-		//public static List<double> fps = new List<double>(64);
 		public event Action UpdateColors;
 
 		public Label OutputTxt;
@@ -35,6 +31,8 @@ namespace Eight_Orbits {
 			OutputTxt.Text = "Hello World!";
 			this.MaximizeBox = false;
 			Show();
+
+			//OnUpdate += () => OnUpdateAnimation?.Invoke();
 
 			if (AnimationsEnabled) {
 				this.Location = Screen.AllScreens[0].WorkingArea.Location;
@@ -73,9 +71,6 @@ namespace Eight_Orbits {
 			Invalidate();
 		}
 
-		//private volatile object update_lock = new { };
-		//private volatile bool updating = false;
-
 		bool running = false;
 		public void StartAsyncUpdate() {
 			if (running) return;
@@ -90,7 +85,6 @@ namespace Eight_Orbits {
 		}
 
 		private async void AsyncUpdateMath() {
-			//if (!SyncUpdate) OnUpdateAnimation?.Invoke();
 			while (ApplicationRunning) {
 				if (running) await Task.Run((Action) Program.Update);
 				else SpinWait.SpinUntil(() => running);
@@ -99,6 +93,14 @@ namespace Eight_Orbits {
 		
 		private void window_keyup(object sender, KeyEventArgs e) {
 			keydown.Remove(e.KeyCode);
+			if (e.KeyCode == Keys.F7) {
+				SlowMo = false;
+				return;
+			} else if (e.KeyCode == Keys.F8) {
+				SpeedMo = false;
+				return;
+			}
+
 			if (Ingame && ActiveKeys.Contains(e.KeyCode)) HEADS[e.KeyCode].key.Release();
 		}
 		
@@ -140,7 +142,7 @@ namespace Eight_Orbits {
 				return;
 			} 
 			
-			else if (e.KeyCode == Keys.F9) {
+			else if (e.KeyCode == Keys.F9 && e.Alt) {
 				if (ActiveKeys.Count == 0 || InactiveKeys.Count == 0)
 					return;
 
@@ -148,6 +150,20 @@ namespace Eight_Orbits {
 				HEADS[ActiveKeys[0]].Die();
 				return;
 			} 
+
+			else if (e.KeyCode == Keys.F7) {
+				SlowMo = true;
+				return;
+			}
+
+			else if (e.KeyCode == Keys.F8) {
+				SpeedMo = true;
+				return;
+			}
+
+			else if (e.KeyCode == Keys.F12 && e.Control && e.Alt && state == States.NEWGAME) {
+				// trigger tutorial
+			}
 			
 			else if (e.KeyCode == Keys.F5) {
 				switch (Gamemode) {

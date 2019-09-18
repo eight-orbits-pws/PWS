@@ -52,6 +52,7 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Pop(Head h) {
+			if (ChaosMode) TriggerSlowMo(13);
 			head = h;
 			_ = new Animation(pos, 13, BlastR, BlastRange, 5*Scale, 5*Scale, h.color, 200, AnimationTypes.SQRT);
 			window.DrawBlast -= Draw;

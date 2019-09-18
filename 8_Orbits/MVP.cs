@@ -107,12 +107,13 @@ namespace Eight_Orbits {
 			for (int i = 0; i < records.Count; i++) {
 				lock (RecordsLock) {
 					record = records[i];
-				//COLLAT -> ACE -> WIN
+					//COLLAT -> ACE -> WIN
 					if (record.Type == MVPTypes.ACE && mvp.Type == MVPTypes.COLLATERAL && mvp.Special.Equals((InactiveKeys.Count - 1)))
 						mvp = new Stat(MVPTypes.COLLATERAL_ACE);
-					else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.ACE)
+					else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.ACE) {
 						mvp = new Stat(MVPTypes.ACE_WINNER);
-					else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.COLLATERAL_ACE)
+						TriggerSuperSlowMo();
+					} else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.COLLATERAL_ACE)
 						mvp = new Stat(MVPTypes.COLLATERAL_ACE_WINNER);
 					else if (record.Type.GetHashCode() > mvp.Type.GetHashCode())
 						mvp = record;
@@ -297,12 +298,12 @@ namespace Eight_Orbits {
 	}
 
 	/// Deprecated because of lag
-	class Assist {
+	class AssistOld {
 		private static HashSet<Keys> bounced = new HashSet<Keys>();
 		Head head;
 		Head HEAD;
 
-		public Assist(Head head, Head HEAD) {
+		public AssistOld(Head head, Head HEAD) {
 			if (SyncUpdate && ActiveKeys.Count <= 12 && !bounced.Contains(head.KeyCode) && !bounced.Contains(HEAD.KeyCode)) {
 				bounced.Add(head.KeyCode);
 				bounced.Add(head.KeyCode);

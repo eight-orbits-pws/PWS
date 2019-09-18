@@ -25,6 +25,8 @@ namespace Eight_Orbits {
 				if (SyncUpdate) NeuralThread = new MyTimer(120d / 1000d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
 				// else update in UpdateThread
 
+				AssistThread = new AssistKill();
+
 				if (AnimationsEnabled) {
 					if (SyncUpdate) VisualThread = new MyTimer(60d / 1000d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
 					else {
@@ -52,6 +54,7 @@ namespace Eight_Orbits {
 		public static MyTimer UpdateThread;
 		public static MyTimer VisualThread;
 		public static MyTimer NeuralThread;
+		public static AssistKill AssistThread;
 
 		public static volatile object updatinglocker = new { };
 
@@ -66,6 +69,8 @@ namespace Eight_Orbits {
 		public static bool ChaosMode => Gamemode == Gamemodes.CHAOS_RAINBOW || Gamemode == Gamemodes.CHAOS_RED;
 		/// </summary>
 		public static bool ApplicationRunning = true;
+		public static bool SlowMo = false;
+		public static bool SpeedMo = false;
 		private static void stop_running(object sender, EventArgs e) => ApplicationRunning = false;
 		
 		public static Window window = new Window();
@@ -104,6 +109,7 @@ namespace Eight_Orbits {
 		private static float scale = SZR / Settings.Default.Scale;
 		public static float Scale => scale;
 
+		private static ulong frame = 0;
 		private static ulong tick = 1;
 		public static int Tick => (int) tick;
 
@@ -114,53 +120,103 @@ namespace Eight_Orbits {
 		private static HashSet<Keys> check = new HashSet<Keys>();
 
 		public static void Update() {
-			lock (updatinglocker) {
-				tick++;
-				OnUpdate?.Invoke();
-				if (!SyncUpdate) UpdateNeural();
+			byte iframe = 0;
+			do {
+				lock (updatinglocker) {
+					frame++;
+					if (SlowMo) {
+						if (SpeedMo && frame % 3 != 0)
+							return;
+						else if (!SpeedMo && frame % 6 != 0)
+							return;
+					}
+					tick++;
+					OnUpdate?.Invoke();
+					
+					if (!SyncUpdate)
+						UpdateNeural();
 
-				if (state == States.INGAME) {
+					if (state == States.INGAME) {
 
-					for (int b = Blast.All.Count - 1; b >= 0; b--) Blast.All[b].Update();
-					if (tick % 6 == 0) Blast.Spawn();
+						for (int b = Blast.All.Count - 1; b >= 0; b--)
+							Blast.All[b].Update();
+						if (tick % 6 == 0)
+							Blast.Spawn();
 
-					//Update Players
-					int i, c; //indexers
-					Orb orb;
-					lock (ActiveLock) {
-						for (c = ActiveKeys.Count - 1; c >= 0; c--) {
-							Head p = HEADS[ActiveKeys[c]];
-							if (p.act == Activities.DASHING || p.act == Activities.STARTROUND)
-								continue;
+						//Update Players
+						int i, c; //indexers
+						Orb orb;
+						lock (ActiveLock) {
+							for (c = ActiveKeys.Count - 1; c >= 0; c--) {
+								Head p = HEADS[ActiveKeys[c]];
+								if (p.act == Activities.DASHING || p.act == Activities.STARTROUND)
+									continue;
 
 
-							lock (Orb.OrbLock) {
-								for (i = Orb.All.Count - 1; i >= 0; i--) {
-									orb = Orb.All[i];
-									if (p.Collide(orb)) {
-										if (orb.noOwner())
-											p.Eat(orb.ID);
-										else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING) {
-											new Coin(p.pos, HEADS[orb.owner].Reward(orb.ID, p.KeyCode), HEADS[orb.owner].color);
-											p.Die();
+								lock (Orb.OrbLock) {
+									for (i = Orb.All.Count - 1; i >= 0; i--) {
+										orb = Orb.All[i];
+										if (p.Collide(orb)) {
+											if (orb.noOwner())
+												p.Eat(orb.ID);
+											else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING) {
+												new Coin(p.pos, HEADS[orb.owner].Reward(orb.ID, p.KeyCode), HEADS[orb.owner].color);
+												p.Die();
+												AssistThread.AddKill(orb.owner, p.KeyCode);
+												if (ChaosMode) TriggerSlowMo(45);
+											}
 										}
 									}
 								}
-							}
-							if (!p.Died) {
-								foreach (Keys b in check)
-									if (p.pos * HEADS[b].pos < HeadR * 2)
-										Bounce(p, HEADS[b]);
+								if (!p.Died) {
+									foreach (Keys b in check)
+										if (p.pos * HEADS[b].pos < HeadR * 2)
+											Bounce(p, HEADS[b]);
 
-								check.Add(ActiveKeys[c]);
+									check.Add(ActiveKeys[c]);
+								}
 							}
 						}
-					}
 
-					if (Map.phase == Phases.STARTROUND) return;
-					check.Clear();
+						AssistThread.Invoke();
+						//if (Map.phase == Phases.STARTROUND) return;
+						check.Clear();
+					}
 				}
-			}
+
+				if (iframe++ == 1) return; 
+			} while (SpeedMo);
+		}
+
+		public static void TriggerSlowMo(int length) {
+			if (SlowMo) return;
+			new Thread(() => {
+				SlowMo = true;
+				SpeedMo = true;
+				int tick = Tick + length;
+				SpinWait.SpinUntil(() => Tick >= tick);
+				SlowMo = false;
+				SpeedMo = false;
+			}).Start();
+		}
+
+		public static void TriggerSuperSlowMo() {
+			if (SlowMo) return;
+			new Thread(() => {
+				SlowMo = true;
+				int tick = Tick;
+				SpinWait.SpinUntil(() => Tick >= tick + 15);
+				SlowMo = false;
+			}).Start();
+		}
+
+		public static void TriggerSpeedMo() {
+			new Thread(() => {
+				SpeedMo = true;
+				int tick = Tick;
+				SpinWait.SpinUntil(() => Tick >= tick + 60);
+				SpeedMo = false;
+			}).Start();
 		}
 
 		public static void UpdateNeural() {
@@ -206,8 +262,11 @@ namespace Eight_Orbits {
 			double to_correct = HeadR * 2 - distance.L;
 			distance.L = 1;
 
-			p.pos -= distance * to_correct / 2d;
-			P.pos += distance * to_correct / 2d;
+			p.pos -= distance * to_correct / 1.5d;
+			P.pos += distance * to_correct / 1.5d;
+
+			// add mvpcheck
+			AssistThread.Add(p.KeyCode, P.KeyCode);
 
 			// just act NORMAL
 			p.act = P.act = Activities.DEFAULT;
