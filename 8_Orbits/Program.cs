@@ -36,7 +36,7 @@ namespace Eight_Orbits {
 					}
 				}
 			});
-			Map.OnStartGame += reset_tick;
+			//Map.OnStartGame += reset_tick;
 			Map.OnClear += window.Clear;
 			Map.spawnOrb();
 
@@ -75,7 +75,10 @@ namespace Eight_Orbits {
 		
 		public static Window window = new Window();
 
-		public static World Map;
+		private static World map;
+		public static World Map { get { return TutorialActive? TUTO : map; } set { map = value; } }
+		public static bool TutorialActive = false;
+		public static Tutorial TUTO;
 
 		public static Dictionary<Keys, Head> HEADS = new Dictionary<Keys, Head>();
 		public static volatile List<Keys> ActiveKeys = new List<Keys>();
@@ -159,16 +162,16 @@ namespace Eight_Orbits {
 										if (p.Collide(orb)) {
 											if (orb.noOwner())
 												p.Eat(orb.ID);
-											else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING) {
+											else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING && !p.INVINCIBLE) {
 												new Coin(p.pos, HEADS[orb.owner].Reward(orb.ID, p.KeyCode), HEADS[orb.owner].color);
 												p.Die();
 												AssistThread.AddKill(orb.owner, p.KeyCode);
-												if (ChaosMode) TriggerSlowMo(45);
+												if (ChaosMode) TriggerSlowMo(30);
 											}
 										}
 									}
 								}
-								if (!p.Died) {
+								if (!p.Died && !p.INVINCIBLE) {
 									foreach (Keys b in check)
 										if (p.pos * HEADS[b].pos < HeadR * 2)
 											Bounce(p, HEADS[b]);
@@ -205,7 +208,7 @@ namespace Eight_Orbits {
 			new Thread(() => {
 				SlowMo = true;
 				int tick = Tick;
-				SpinWait.SpinUntil(() => Tick >= tick + 15);
+				SpinWait.SpinUntil(() => Tick >= tick + 20);
 				SlowMo = false;
 			}).Start();
 		}

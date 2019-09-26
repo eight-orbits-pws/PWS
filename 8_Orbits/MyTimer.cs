@@ -39,7 +39,7 @@ namespace Eight_Orbits {
 		private void execute() {
 			while (Program.ApplicationRunning) {
 				running = false;
-				if (Program.SyncUpdate) SpinWait.SpinUntil(() => running);
+				if (Program.SyncUpdate) SpinWait.SpinUntil(() => running || !Program.ApplicationRunning);
 				lock (execute_lock) executable();
 			}
 		}

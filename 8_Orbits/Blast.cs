@@ -14,6 +14,7 @@ namespace Eight_Orbits.Entities {
 		private Head head;
 
 		public static void Spawn() {
+			if (TutorialActive) return;
 			switch (Map.blastSpawn) {
 				case BlastSpawn.RARE:
 					if (R.NextDouble() < Math.Pow(2, -8)) lock (BlastLock) All.Add(new Blast());
@@ -52,14 +53,14 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Pop(Head h) {
-			if (ChaosMode) TriggerSlowMo(13);
+			//if (ChaosMode) TriggerSlowMo(0);
 			head = h;
 			_ = new Animation(pos, 13, BlastR, BlastRange, 5*Scale, 5*Scale, h.color, 200, AnimationTypes.SQRT);
 			window.DrawBlast -= Draw;
 			int endtick = Tick + 13;
 			new Thread(() => {
 				Thread.CurrentThread.Name = "BlastPop_Timer";
-				SpinWait.SpinUntil(() => Tick >= endtick);
+				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning);
 				PopEnd();
 			}).Start();
 			Remove();

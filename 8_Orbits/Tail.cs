@@ -26,8 +26,8 @@ namespace Eight_Orbits {
 		}
 
 		void Clear() {
-			white.Clear();
-			tail.Clear();
+			lock (OrbLock) white.Clear();
+			lock (OrbLock) tail.Clear();
 		}
 		
 		public void logAdd(IPoint pos) {
@@ -64,14 +64,15 @@ namespace Eight_Orbits {
 			else tail.Remove(id);
 		}
 
-		public int length { get { return tail.Count; } }
-		
+		public int length => tail.Count;
+
 		public void Update() {
-			lock (OrbLock) for (int i = tail.Count - 1; i >= 0; i--) All[tail[i]].Move(logIndex(i));
+			lock (OrbLock) for (int i = tail.Count - 1; i >= 0; i--) All[tail[i]].Move(log_index(i));
 
 			for (int i  = white.Count - 1; i >= 0; i--) {
 				byte id = white[i];
-				Orb orb = All[id];
+				Orb orb;
+				lock (OrbLock) orb = All[id];
 				orb.Move(logLast());
 
 				if (orb.pos * logLast() < speed * 3D && IsNotGrowing()) {
@@ -94,12 +95,13 @@ namespace Eight_Orbits {
 			}
 		}
 
-		IPoint logIndex(int i) { lock (list_lock) return log[Math.Min((i + 1) * mBL, log.Count - 1)].Copy(); }
+		IPoint log_index(int i) { lock (list_lock) return log[Math.Min((i + 1) * mBL, log.Count - 1)].Copy(); }
 
-		public IPoint logLast() { lock (list_lock) return log[Math.Min(tail.Count * mBL, log.Count - 1)].Copy(); }
+		public IPoint logLast() { lock (list_lock) return log[Math.Min
+			(tail.Count * mBL, log.Count - 1)].Copy(); }
 
-		public bool IsNotGrowing() { return tail.Count * mBL == log.Count - 1; }
-		
+		public bool IsNotGrowing() => tail.Count * mBL == log.Count - 1;
+
 		private void trim() {
 			int end = tail.Count * mBL;
 			lock (list_lock) log = log.GetRange(0, Math.Min(tail.Count * mBL, log.Count));

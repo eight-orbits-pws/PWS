@@ -29,7 +29,7 @@ namespace Eight_Orbits {
 
 		private void main() {
 			while (Program.ApplicationRunning) {
-				SpinWait.SpinUntil(() => this.wait);
+				SpinWait.SpinUntil(() => this.wait || !Program.ApplicationRunning);
 				this.wait = false;
 				if (Program.ActiveKeys.Count <= 12) this.execute();
 			}

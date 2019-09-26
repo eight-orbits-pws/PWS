@@ -1,12 +1,8 @@
 ﻿using Eight_Orbits.Entities;
 using Eight_Orbits.Properties;
-using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using static Eight_Orbits.Program;
 
@@ -24,6 +20,17 @@ namespace Eight_Orbits {
 
 		private static bool winner = false;
 
+		public static void SetText(string text) => DisplayText = text;
+
+		public static void Flash() {
+			int starttick = Tick;
+			new Thread(() => {
+				Show();
+				SpinWait.SpinUntil(() => Tick >= starttick + 60 || !ApplicationRunning);
+				Hide();
+			}).Start();
+		}
+
 		public static void Add(MVPTypes type) => records.Add(new Stat(type));
 
 		public static void Add(MVPTypes type, string hero) {
@@ -31,7 +38,7 @@ namespace Eight_Orbits {
 				new Thread(() => {
 					DisplayText = "";
 					int tick = Tick + 1;
-					SpinWait.SpinUntil(() => Tick > tick);
+					SpinWait.SpinUntil(() => Tick > tick || !ApplicationRunning);
 
 					// okay, so one can win with a ghostkill. help
 					// copy paste of Analyze
@@ -53,8 +60,6 @@ namespace Eight_Orbits {
 						Map.EndGame();
 						Leader = leader;
 						Clear();
-						//HEADS[leader].IsLeader = true;
-						//} else if (Head.getKeyString(second) == hero && HEADS[leader].Points - HEADS[second].Points < 2 && HEADS[leader].Points >= Map.MaxPoints) {
 					} else if (Map.phase == Phases.ENDGAME && HEADS[leader].Points - HEADS[second].Points < 2) {
 						// so leader won, but now seconds is in reached because of the ghostkill O_o
 						Map.phase = Phases.ENDROUND;
@@ -108,14 +113,16 @@ namespace Eight_Orbits {
 				lock (RecordsLock) {
 					record = records[i];
 					//COLLAT -> ACE -> WIN
-					if (record.Type == MVPTypes.ACE && mvp.Type == MVPTypes.COLLATERAL && mvp.Special.Equals((InactiveKeys.Count - 1)))
+					if (record.Type == MVPTypes.ACE && mvp.Type == MVPTypes.COLLATERAL && mvp.Special.Equals((InactiveKeys.Count - 1))) {
 						mvp = new Stat(MVPTypes.COLLATERAL_ACE);
-					else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.ACE) {
+						TriggerSuperSlowMo();
+					} else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.ACE) {
 						mvp = new Stat(MVPTypes.ACE_WINNER);
 						TriggerSuperSlowMo();
-					} else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.COLLATERAL_ACE)
+					} else if (record.Type == MVPTypes.WINNER && mvp.Type == MVPTypes.COLLATERAL_ACE) {
 						mvp = new Stat(MVPTypes.COLLATERAL_ACE_WINNER);
-					else if (record.Type.GetHashCode() > mvp.Type.GetHashCode())
+						TriggerSuperSlowMo();
+					} else if (record.Type.GetHashCode() > mvp.Type.GetHashCode())
 						mvp = record;
 					else if (record.Type == MVPTypes.COLLATERAL && mvp.Type == MVPTypes.COLLATERAL && (record.Special[0] > mvp.Special[0]))
 						mvp = record;
@@ -228,7 +235,7 @@ namespace Eight_Orbits {
 		}
 
 		public static void Draw(Graphics g) {
-			g.TranslateTransform(W / 2, W / 4f);
+			g.TranslateTransform(W / 2, W / 4f - (TutorialActive? W/7:0));
 			float r = Displaying? (float) Appear:(float) Disappear;
 
 			if (r != 0) {
@@ -246,7 +253,7 @@ namespace Eight_Orbits {
 		private static string win_message(string hero) {
 			List<string> msg = new List<string>() {
 				$"{hero}!",
-				$"{hero} won!",
+				$"{hero} win!",
 				$"{hero} has won!",
 				$"{hero} victory!",
 				$"Victory to {hero}!",
@@ -264,77 +271,32 @@ namespace Eight_Orbits {
 
 	
 	class Stat {
-		private string hero;
-		private MVPTypes type;
-		private string special;
-
-		public string Hero => hero;
-		public MVPTypes Type => type;
-		public string Special => special;
+		public string Hero { get; }
+		public MVPTypes Type { get; }
+		public string Special { get; }
 
 		public Stat() {
-			this.hero = "";
-			this.type = MVPTypes.NONE;
-			this.special = "";
+			this.Hero = "";
+			this.Type = MVPTypes.NONE;
+			this.Special = "";
 		}
 
 		public Stat(MVPTypes type) {
-			this.hero = "";
-			this.type = type;
-			this.special = "";
+			this.Hero = "";
+			this.Type = type;
+			this.Special = "";
 		}
 
 		public Stat(string hero, MVPTypes type) {
-			this.hero = hero;
-			this.type = type;
-			this.special = "";
+			this.Hero = hero;
+			this.Type = type;
+			this.Special = "";
 		}
 
 		public Stat(string hero, MVPTypes type, string special) {
-			this.hero = hero;
-			this.type = type;
-			this.special = special;
-		}
-	}
-
-	/// Deprecated because of lag
-	class AssistOld {
-		private static HashSet<Keys> bounced = new HashSet<Keys>();
-		Head head;
-		Head HEAD;
-
-		public AssistOld(Head head, Head HEAD) {
-			if (SyncUpdate && ActiveKeys.Count <= 12 && !bounced.Contains(head.KeyCode) && !bounced.Contains(HEAD.KeyCode)) {
-				bounced.Add(head.KeyCode);
-				bounced.Add(head.KeyCode);
-
-				this.head = head;
-				this.HEAD = HEAD;
-				OnKill += kill_confirmed;
-				//new Thread(analyze).Start();
-			}
-		}
-
-		private async void analyze() {
-			Thread.CurrentThread.Name = "Assist_Thread";
-			if (Thread.CurrentThread.IsBackground) await WaitUntilTick(Tick + 13);
-
-			OnKill -= kill_confirmed;
-			bounced.Remove(this.head.KeyCode);
-			bounced.Remove(this.HEAD.KeyCode);
-		}
-
-		private void kill_confirmed(Head killer, Head victim) {
-			if (head != killer && head != victim && HEAD != killer && HEAD != victim) return;
-			if ((head == killer && HEAD == victim) || (HEAD == killer && head == victim)) return;
-			lock (MVP.RecordsLock) {
-				if (head == victim) MVP.Add(MVPTypes.ASSIST, HEAD.DisplayKey, head.DisplayKey);
-				else if (HEAD == victim) MVP.Add(MVPTypes.ASSIST, head.DisplayKey, HEAD.DisplayKey);
-			}
-		}
-
-		private void remove() {
-			OnKill -= kill_confirmed;
+			this.Hero = hero;
+			this.Type = type;
+			this.Special = special;
 		}
 	}
 }

@@ -104,6 +104,7 @@
     <Compile Include="TextOutput.Designer.cs">
       <DependentUpon>TextOutput.cs</DependentUpon>
     </Compile>
+    <Compile Include="Tutorial.cs" />
     <Compile Include="Vector.cs" />
     <Compile Include="Window.cs">
       <SubType>Form</SubType>

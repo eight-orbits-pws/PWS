@@ -20,7 +20,7 @@ namespace Eight_Orbits.Entities {
 		private HashSet<Keys> killed = new HashSet<Keys>();
 		public byte index = 0;
 
-		private IPoint orbitCenter;
+		public IPoint orbitCenter;
 		public Tail tail = new Tail();
 
 		private float z = 0;
@@ -31,6 +31,8 @@ namespace Eight_Orbits.Entities {
 
 		private bool dead = false;
 		public bool Died => dead;
+
+		public bool INVINCIBLE = false;
 
 		public Activities act = Activities.DEFAULT;
 		public IKey key;
@@ -78,6 +80,30 @@ namespace Eight_Orbits.Entities {
 			color = generate_color();
 
 			this.key = new IKey(KeyCode, DisplayKey, color);
+		}
+
+		public Head(Head head) {
+			this.KeyCode = head.KeyCode;
+
+			DisplayKey = head.DisplayKey;
+			window.writeln(DisplayKey);
+			
+			color = generate_color();
+
+			this.key = new IKey(KeyCode, DisplayKey, color);
+			index = (byte) ActiveKeys.Count;
+			r = HeadR * SZR;
+			v = IVector.Up;
+			pos = head.pos;
+
+			this.key.points = this.Points = head.Points;
+			this.act = head.act;
+
+			Map.OnStartGame += Reset;
+			Map.OnRevive += Revive;
+			Map.OnClear += clear;
+			OnUpdate += Update;
+			if (AnimationsEnabled) window.DrawHead += Draw;
 		}
 
 		~Head() {
@@ -210,7 +236,7 @@ namespace Eight_Orbits.Entities {
 
 			Map.Sort();
 			IKey.UpdateAll();
-			if (ActiveKeys.Count == 1) new Thread(Map.EndRound).Start();
+			if (ActiveKeys.Count == 1 && Map.phase != Phases.ENDROUND) new Thread(Map.EndRound).Start();
 		}
 
 		private readonly object lock_reward = new {};
@@ -336,6 +362,7 @@ namespace Eight_Orbits.Entities {
 
 		public void Draw(Graphics g) {
 			r = HeadR;
+			if (act == Activities.DEAD) return;
 			Bitmap bmp = new Bitmap((int) Math.Ceiling(r * 2), (int) Math.Ceiling(r * 2));
 			Graphics frame = Graphics.FromImage(bmp);
 			SizeF sz = g.MeasureString(DisplayKey, new Font(Program.FONT, r-1));

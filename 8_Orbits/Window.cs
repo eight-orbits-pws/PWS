@@ -20,6 +20,8 @@ namespace Eight_Orbits {
 		public static long Time = 0;
 		public event Action UpdateColors;
 
+		Dictionary<Keys, Head> HEADSOnPause = new Dictionary<Keys, Head>();
+
 		public Label OutputTxt;
 
 		public Image background;
@@ -129,6 +131,10 @@ namespace Eight_Orbits {
 				}
 				return;
 			} 
+			else if (e.KeyCode == Keys.F1) {
+				// debug shortcut
+				return;
+			}
 			
 			else if (e.KeyCode == Keys.F4 && !e.Alt) {
 				if (state == States.NEWGAME) {
@@ -161,7 +167,12 @@ namespace Eight_Orbits {
 				return;
 			}
 
-			else if (e.KeyCode == Keys.F12 && e.Control && e.Alt && state == States.NEWGAME) {
+			else if (e.KeyCode == Keys.F12 && e.Alt && state == States.NEWGAME && !TutorialActive) {
+				if (ActiveKeys.Count != 1) return;
+				TUTO = new Tutorial(Map);
+				TutorialActive = true;
+				Map.StartGame();
+				return;
 				// trigger tutorial
 			}
 			
@@ -187,23 +198,27 @@ namespace Eight_Orbits {
 			switch (state) {
 				case States.NEWGAME:
 					//add new player
-					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) {
-						Map.StartGame();
+					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) { // (re)start game
+						if (e.Shift) Map.ResumeGame();
+						else Map.StartGame();
 						Ingame = true;
 						state = States.INGAME;
-					} else if (e.KeyCode == Keys.Escape) {
+					} else if (e.KeyCode == Keys.Escape) { // clear all keys
 						HashSet<Neat> NeatCopy = new HashSet<Neat>(Neat.All);
 						foreach (Neat neat in NeatCopy) neat.Remove();
 						HashSet<Head> HeadCopy = new HashSet<Head>(HEADS.Values);
 						foreach (Head head in HeadCopy) head.Remove();
 						Map.MaxPoints = 0;
 						Leader = Keys.None;
-					} else if (0 <= e.KeyValue && e.KeyValue < 256) {
+					} else if (0 <= e.KeyValue && e.KeyValue < 256) { //add key
 						lock (ActiveLock) {
 							if (ActiveKeys.Contains(ekey)) {
 								HEADS[ekey].Remove();
 							} else {
-								HEADS.Add(ekey, new Head(ekey));
+								if (HEADSOnPause.ContainsKey(ekey)) {
+									HEADS.Add(ekey, new Head(HEADSOnPause[ekey]));
+								} else
+									HEADS.Add(ekey, new Head(ekey));
 								ActiveKeys.Add(ekey);
 								Map.SetMaxPoints();
 							}
@@ -212,29 +227,28 @@ namespace Eight_Orbits {
 					}
 					break;
 				case States.INGAME:
-					if (e.KeyCode == Keys.Escape) {
+					if (e.KeyCode == Keys.Escape) { //pause game
 						state = States.PAUSED;
 					Program.UpdateThread.Pause();
 						running = false;
-					} else if (ActiveKeys.Contains(ekey)) {
+					} else if (ActiveKeys.Contains(ekey)) { //default action
 						HEADS[ekey].Action();
 					} break;
 				case States.PAUSED:
-					if (e.KeyCode == Keys.Escape) {
+					if (e.KeyCode == Keys.Escape) { // unpause
 						state = States.INGAME;
 						Ingame = true;
 						if (SyncUpdate) UpdateThread.UnPause();
 						running = true;
-					} else if (e.KeyCode == Keys.Enter) {
+					} else if (e.KeyCode == Keys.Enter) { // let players join
+						HEADSOnPause = new Dictionary<Keys, Head>(HEADS);
 						Map.EndGame();
 						Map.Clear();
-						//Map.RoundsPassed = 0;
 						Map.phase = Phases.NONE;
 						state = States.NEWGAME;
 						lock (ActiveLock) foreach (Keys key in ActiveKeys) HEADS[key].v = IVector.Up;
 						Ingame = false;
 						if (SyncUpdate) UpdateThread.UnPause();
-
 					}
 					break;
 			}
