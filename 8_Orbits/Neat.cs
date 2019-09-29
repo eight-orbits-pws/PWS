@@ -278,9 +278,9 @@ namespace Neural_Network
 
             hsv.h += (float)R.NextDouble() * 180 - 90;
             if (hsv.h < 0)
-                hsv.h += 1;
-            if (hsv.h >= 1)
-                hsv.h -= 1;
+                hsv.h += 360;
+            if (hsv.h >= 360)
+                hsv.h -= 360;
 
             head.color = ColorFromHSL(hsv);
         }

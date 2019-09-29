@@ -44,10 +44,10 @@ namespace Neural_Network {
 		public abstract void calc(Neat nnw);
 
         public void fireAxons(Neat nnw) {
-            if (double.IsNaN(value)) throw new ArithmeticException();
-            foreach (Axon axon in axons) {
+            if (double.IsNaN(value))
+                value = 0;
+            foreach (Axon axon in axons)
                 nnw[axon.destination].add(value * axon.weight);
-            }
         }
 		
 		public void add(double d) {
