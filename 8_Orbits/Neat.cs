@@ -27,6 +27,7 @@ namespace Neural_Network {
 		public List<Neuron> Neurons { get { return neurons; } }
 		public OutputNeuron Output { get { return output; } }
 		public int Count { get { return neurons.Count; } }
+        private Ray ray;
 
 		public Neuron this[int index] { get {
 				if (index < 0) return input[-1-index];
@@ -42,7 +43,7 @@ namespace Neural_Network {
 
 		public Neat() {
 			// ---
-			for (int i = 0; i < 64; i++) input.Add(new InputNeuron(this, -i - 1));
+			for (int i = 0; i < 65; i++) input.Add(new InputNeuron(this, -i - 1));
 			neurons = new List<Neuron>();
             for (int i = 0; i < 32; i++) neurons.Add(new StdNeuron(this, i + 1));
 			output = new OutputNeuron(this, 0);
