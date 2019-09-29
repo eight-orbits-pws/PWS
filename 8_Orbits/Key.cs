@@ -40,7 +40,7 @@ namespace Eight_Orbits {
 		string DKey;
 		private bool pressed = false;
 		private bool dead = false;
-		private Color color;
+		//private Color color;
 		private Color transit = Color.Black;
 
 		private Font std_font = new Font(FONT, 20 * SZR);
@@ -51,7 +51,7 @@ namespace Eight_Orbits {
 			w.Set(WIDTH);
 			owner = head;
 			DKey = DisplayKey;
-			this.color = color;
+			//this.color = color;
 			window.DrawKeys += Draw;
 		}
 
@@ -93,6 +93,7 @@ namespace Eight_Orbits {
 		}
 
 		public void Draw(Graphics g) {
+			Color color = ChaosMode? Color.Red : HEADS[owner].color;
 			Color txtColor;
 
 			if (pressed) txtColor = AnimatableColor.Lurp(transit, color, (float) a);

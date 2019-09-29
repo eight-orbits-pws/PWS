@@ -14,6 +14,7 @@ namespace Eight_Orbits.Entities {
 		private Head head;
 
 		public static void Spawn() {
+			if (TutorialActive) return;
 			switch (Map.blastSpawn) {
 				case BlastSpawn.RARE:
 					if (R.NextDouble() < Math.Pow(2, -8)) lock (BlastLock) All.Add(new Blast());
@@ -52,13 +53,14 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Pop(Head h) {
-			Collect(h);
+			//if (ChaosMode) TriggerSlowMo(0);
 			head = h;
-			new Animation(pos, 13, BlastR, BlastRange, 5*Scale, 5*Scale, Color.White, 13, AnimationTypes.SQRT);
+			_ = new Animation(pos, 13, BlastR, BlastRange, 5*Scale, 5*Scale, h.color, 200, AnimationTypes.SQRT);
 			window.DrawBlast -= Draw;
-			new Thread(async () => {
+			int endtick = Tick + 13;
+			new Thread(() => {
 				Thread.CurrentThread.Name = "BlastPop_Timer";
-				if (Thread.CurrentThread.IsBackground) await WaitUntilTick(Tick + 13);
+				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning);
 				PopEnd();
 			}).Start();
 			Remove();
@@ -71,7 +73,7 @@ namespace Eight_Orbits.Entities {
 		public void Collect(Head head) {
 			for (int i = Orb.All.Count - 1; i >= 0; i--) {
 				Orb orb = Orb.All[i];
-				if (head.pos * orb.pos < BlastRange && orb.owner != head.keyCode && !orb.isBullet) head.Eat(orb.ID);
+				if (head.pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat(orb.ID);
 			}
 		}
 
@@ -82,7 +84,7 @@ namespace Eight_Orbits.Entities {
 					Blast blast;
 					for (int i = All.Count - 1; i >= 0; i--) {
 						blast = All[i];
-						if (head.pos * blast.pos < BlastRange) blast.Pop(head);
+						if (head.pos * blast.pos <= BlastRange) blast.Pop(head);
 					}
 				}
 			}

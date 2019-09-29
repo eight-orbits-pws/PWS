@@ -51,7 +51,7 @@ namespace Neural_Network {
 
 			//Don't touch rest of func
 			Head head = new Head(this);
-			key = head.keyCode;
+			key = head.KeyCode;
 			try {
 				Program.HEADS.Add(key, head);
 			} catch (ArgumentException) {
@@ -102,11 +102,12 @@ namespace Neural_Network {
         }
 		
 		private void fetch_input() {
-			//inorbit, 0, r, v
+			//inorbit, rotation, x, y, orbs in tail
 			//twelve rays
-			//each has { dist, type_info, type_info, type_info }
-			//type: player | blast | orb(w) | orb(p)
-			//64 input nodes total
+			//each has distance to first { orbit, blast, orb, orb, player }
+			//type: player | blast | orb(w) | orb(p) | wall | orbits
+			//65 input nodes total
+
 			Head head;
 			try {
 				head = HEADS[key];
@@ -114,49 +115,43 @@ namespace Neural_Network {
 				return;
 			}
 
-            if (head.Died) { return; };
+			if (head.Died || Map.phase != Phases.NONE) return;
 			
-			Ray ray = new Ray(head.pos, head.v);
-			Dictionary<double, byte> distances = new Dictionary<double, byte>();
-			double distance;
-			byte info;
+			ray.Set(head.pos, head.v);
+			HashSet<double> distances = new HashSet<double>();
 			double deltaA = Math.PI / 6d;
-
+			
 			input[0].add(BoolToInt(Map.InOrbit(head.pos)));
-			foreach (Orbit orbit in Map.Orbits) if (ray.Hit(orbit)) distances.Add(ray.Distance(orbit), 0);
-			if (distances.Count == 0) distances.Add(W, 0);
-			ray.laser.L = distances.Keys.Min();
-			input[1].add(distances.Keys.Min() / W);
-			input[2].add(head.v.A / Math.PI);
-			input[3].add(head.v.L / (speed * 2));
+			input[1].add(head.v.A / PI);
+			input[2].add(head.pos.X / W * 2 - 1);
+			input[3].add(head.pos.Y / W);
+			input[4].add(head.tail.length == 0? -1 : 1 / head.tail.length);
 
 			for (int i = 0; i < 12; i++) {
-				//raycast
+				foreach (Circle orbit in Map.Orbits) if (ray.Hit(orbit)) distances.Add(ray.Distance(orbit));
+				if (distances.Count == 0) distances.Add(-1);
+				input[5 + 5*i].add(distances.Min());
 				distances.Clear();
-				try {
-					for (int j = Blast.All.Count - 1; j >= 0; j--)
-						if (ray.Hit(Blast.All[j])) distances.Add(ray.Distance(Blast.All[j]), 2);
 
-                    lock (ActiveLock)
-					foreach (Keys k in ActiveKeys)
-						if (k != key && ray.Hit(HEADS[k]))
-							distances.Add(ray.Distance(HEADS[k]), 1);
+				lock (Blast.BlastLock) foreach (Circle blast in Blast.All) if (ray.Hit(blast)) distances.Add(ray.Distance(blast));
+				if (distances.Count == 0) distances.Add(-1);
+				input[6 + 5*i].add(distances.Min());
+				distances.Clear();
 
-					lock (Orb.OrbLock) for (int j = Orb.All.Count - 1; j >= 0; j--)
-						if (ray.Hit(Orb.All[j]) && Orb.All[j].state != OrbStates.WHITE) {
-							if (Orb.All[j].noOwner()) distances.Add(ray.Distance(Orb.All[j]), 2);
-							else distances.Add(ray.Distance(Orb.All[j]), 3);
-						}
-				} catch (Exception) {
-					// nothing
-				}
+				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.noOwner() && ray.Hit(orb)) distances.Add(ray.Distance(orb));
+				if (distances.Count == 0) distances.Add(-1);
+				input[7 + 5*i].add(distances.Min());
+				distances.Clear();
 
-				if (distances.Count == 0) distances.Add(W, 0);
-				distance = distances.Keys.Min();
-				info = distances[distance];
+				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (ray.Hit(orb) && !orb.noOwner() && orb.owner != key) distances.Add(ray.Distance(orb));
+				if (distances.Count == 0) distances.Add(-1);
+				input[8 + 5*i].add(distances.Min());
+				distances.Clear();
 
-				if (info > 0) input[4 + info + 5*i].add(1);
-				input[4 + 5*i].add(distance / W);
+				lock (ActiveLock) foreach (Keys k in ActiveKeys) if (k != key && ray.Hit(HEADS[k])) distances.Add(ray.Distance(HEADS[k]));
+				if (distances.Count == 0) distances.Add(-1);
+				input[9 + 5*i].add(distances.Min());
+				distances.Clear();
 
 				ray.laser.A += deltaA;
 			}

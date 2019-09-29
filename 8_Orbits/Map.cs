@@ -10,42 +10,52 @@ using System.Threading;
 
 namespace Eight_Orbits {
 	class World {
-		int MaxOrbs = 256;
+		public int MaxOrbs = 256;
 		int orbSpawn = Settings.Default.OrbSpawn;
 		public int StartRoundTime = 0;
 		int EndRoundTime = 180;
 		int EndGameTime = 300;
 
-		byte RoundsPassed = 0;
+		public byte RoundsPassed = 0;
 		public BlastSpawn blastSpawn = (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
-
-		HashSet<Orbit> orbits = new HashSet<Orbit>();
-		public HashSet<Orbit> Orbits { get { return orbits; } }
+		
+		public HashSet<Orbit> Orbits { get; protected set; } = new HashSet<Orbit>();
 		IPoint tempCenter;
 
 		private int tick = 0;
 		public Phases phase = Phases.NONE;
 		public int MaxPoints = 0;
 		
-		public event Action OnClear;
+		public virtual event Action OnClear;
 		public event Action OnClearRemove;
+		protected void start_round() => OnStartRound?.Invoke();
 		public event Action OnStartRound;
+		public void revive() => OnRevive?.Invoke();
 		public event Action OnRevive;
 		//public event Action OnEndRound;
+		protected void start_game() => OnStartGame?.Invoke();
 		public event Action OnStartGame;
 		public event Action OnEndGame;
 
 		public World() {
+			OnClear += () => { };
 			//MVP.Winner += EndGame;
-			this.orbits = maps.Standard;
+			this.Orbits = maps.Standard;
 			OnUpdate += Update;
 
 			if (!AnimationsEnabled) EndRoundTime = EndGameTime = 10;
 		}
+
+		public Action[] get_onclear() => (Action[]) OnClear?.GetInvocationList();
 		
-		public void SetMap() {
+		public virtual void SetMap() {
 			//foreach (Orbit orbit in orbits) orbit.Remove();
-			this.orbits = maps.Random;
+			HashSet<Orbit> temp;
+			do {
+				temp = maps.Random;
+			} while (this.Orbits == temp && RoundsPassed > 0);
+
+			this.Orbits = temp;
 		}
 
 		public void Update() {
@@ -74,7 +84,7 @@ namespace Eight_Orbits {
 			} else tick = 0;
 		}
 
-		public void Draw(Graphics g) {
+		public virtual void Draw(Graphics g) {
 			g.DrawString(MaxPoints.ToString(), new Font(FONT, 8, FontStyle.Bold), Brushes.White, 6, 6);
 			g.FillPolygon(new SolidBrush(window.MapColor), new PointF[8]{
 				new PointF(C, 0f), new PointF(0, C),
@@ -83,11 +93,13 @@ namespace Eight_Orbits {
 				new PointF(W, C), new PointF(W-C, 0)
 			});
 
-			foreach (Orbit orbit in orbits)
+			foreach (Orbit orbit in Orbits)
 				orbit.Draw(g);
 		}
 
-		public void spawnOrb() {
+		public virtual void spawnOrb() {
+			if (Orb.All.Count >= this.MaxOrbs) return;
+
 			byte i = 0;
 			do {
 				new Orb(true);
@@ -95,7 +107,7 @@ namespace Eight_Orbits {
 			} while (i < orbSpawn);
 		}
 
-		public void newOrb() {
+		public virtual void newOrb() {
 			if (orbSpawn < 0) new Orb(false);
 			if (orbSpawn != 0) new Orb(false);
 		}
@@ -130,7 +142,7 @@ namespace Eight_Orbits {
 		}
 
 		public bool InOrbit(IPoint pos) {
-			foreach (Orbit orbit in orbits) {
+			foreach (Orbit orbit in Orbits) {
 				if (orbit.Inside(pos)) {
 					tempCenter = orbit.pos;
 					return true;
@@ -191,7 +203,7 @@ namespace Eight_Orbits {
 			}
 		}
 		
-		public void StartRound() {
+		public virtual void StartRound() {
 			OnStartRound?.Invoke();
 			Clear();
 			StartRoundTime = (int) Math.Round(Math.PI/speed*72*3 * SZR);
@@ -204,21 +216,25 @@ namespace Eight_Orbits {
 			phase = Phases.STARTROUND;
 		}
 
-		public void EndRound() {
+		public virtual void EndRound() {
 			Thread.CurrentThread.Name = "EndRound_Thread";
 			MVP.Analyze();
 			//OnEndRound();
 			if (phase != Phases.ENDGAME) phase = Phases.ENDROUND;
 		}
 
-		public void StartGame() {
+		public void ResumeGame() {
+			StartRound();
+		}
+
+		public virtual void StartGame() {
 			SetMap();
 			OnStartGame?.Invoke();
 			window.writeln("Round: " + RoundsPassed++);
 			StartRound();
 		}
 
-		public void EndGame() {
+		public virtual void EndGame() {
 			OnEndGame?.Invoke();
 			window.writeln(">> Game ended");
 			phase = Phases.ENDGAME;
@@ -397,6 +413,10 @@ namespace Eight_Orbits {
 				Me.Add(new Orbit(.595f, .5f, .12f));
 				Me.Add(new Orbit(.52f, .85f, .06f));
 				Me.Add(new Orbit(.875f, .85f, .05f));
+			
+				//Slash.Add(new Orbit(2.5f/28f, 11.5f/14f, 1/15f));
+				//Slash.Add(new Orbit(6/28f, 10/14f, 1/15f));
+				//Slash.Add(new Orbit(6/28f, 10/14f, 1/15f));
 			}
 
 			public static HashSet<Orbit> fromMapName(MapNames name) {
@@ -428,6 +448,7 @@ namespace Eight_Orbits {
 			public static HashSet<Orbit> Ring = new HashSet<Orbit>();
 			public static HashSet<Orbit> Wave = new HashSet<Orbit>();
 			public static HashSet<Orbit> Me = new HashSet<Orbit>();
+			//public static HashSet<Orbit> Slash = new HashSet<Orbit>();
 
 		}
 	}

@@ -12,7 +12,7 @@ namespace Eight_Orbits.Entities {
 	class Head : Circle, Visual {
 		private static byte bots = 0;
 
-		public Keys keyCode = Keys.None;
+		public Keys KeyCode = Keys.None;
 		public string DisplayKey;
 		public byte Points = 0;
 		public byte Kills = 0;
@@ -20,9 +20,7 @@ namespace Eight_Orbits.Entities {
 		private HashSet<Keys> killed = new HashSet<Keys>();
 		public byte index = 0;
 
-		public bool IsLeader = false;
-
-		private IPoint orbitCenter;
+		public IPoint orbitCenter;
 		public Tail tail = new Tail();
 
 		private float z = 0;
@@ -32,9 +30,9 @@ namespace Eight_Orbits.Entities {
 		private bool bot = false;
 
 		private bool dead = false;
-		public bool Died {  get { return dead; } }
-		//private bool dashing = false;
-		//private bool orbiting = false;
+		public bool Died => dead;
+
+		public bool INVINCIBLE = false;
 
 		public Activities act = Activities.DEFAULT;
 		public IKey key;
@@ -47,25 +45,32 @@ namespace Eight_Orbits.Entities {
 
 			Map.OnStartGame += Reset;
 			Map.OnRevive += Revive;
-			Map.OnClear += Clear;
+			Map.OnClear += clear;
 			OnUpdate += Update;
 			if (AnimationsEnabled) window.DrawHead += Draw;
 		}
 
 		public Head(Neat nnw) : this() {
-			if (bots < 10) keyCode = (Keys) new KeysConverter().ConvertFromString("D" + bots);
-			else keyCode = (Keys) new KeysConverter().ConvertFromString("F" + (bots + 3));
+			if (bots < 10) KeyCode = (Keys) new KeysConverter().ConvertFromString("D" + bots);
+			else KeyCode = (Keys) new KeysConverter().ConvertFromString("F" + (bots + 3));
 
 			if (bots < 10) DisplayKey = "B" + bots;
 			else DisplayKey = "B" + (char) (bots+55);
 
 			color = Color.FromArgb(255, 0, 255, 255);
 			window.writeln(DisplayKey);
+            
+			this.key = new IKey(KeyCode, DisplayKey, color);
+			ActiveKeys.Add(KeyCode);
 
+<<<<<<< HEAD
 			this.key = new IKey(keyCode, DisplayKey, color);
 			ActiveKeys.Add(keyCode);
 
 			nnw.SetKey(keyCode);
+=======
+			nnw.SetKey(KeyCode);
+>>>>>>> 0695eb4645b6c0fdf38f0e5be916b63e65ce9463
 			nnw.Fire += Action;
 			nnw.KeyUp += key.Release;
 
@@ -74,14 +79,38 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public Head(Keys key) : this() {
-			this.keyCode = key;
+			this.KeyCode = key;
 
-			DisplayKey = getKeyString(keyCode);
+			DisplayKey = getKeyString(KeyCode);
 			window.writeln(DisplayKey);
 			
 			color = generate_color();
 
-			this.key = new IKey(keyCode, DisplayKey, color);
+			this.key = new IKey(KeyCode, DisplayKey, color);
+		}
+
+		public Head(Head head) {
+			this.KeyCode = head.KeyCode;
+
+			DisplayKey = head.DisplayKey;
+			window.writeln(DisplayKey);
+			
+			color = generate_color();
+
+			this.key = new IKey(KeyCode, DisplayKey, color);
+			index = (byte) ActiveKeys.Count;
+			r = HeadR * SZR;
+			v = IVector.Up;
+			pos = head.pos;
+
+			this.key.points = this.Points = head.Points;
+			this.act = head.act;
+
+			Map.OnStartGame += Reset;
+			Map.OnRevive += Revive;
+			Map.OnClear += clear;
+			OnUpdate += Update;
+			if (AnimationsEnabled) window.DrawHead += Draw;
 		}
 
 		~Head() {
@@ -95,9 +124,9 @@ namespace Eight_Orbits.Entities {
 
 		public void Remove() {
 			if (bot) bots--;
-			ActiveKeys.Remove(keyCode);
-			InactiveKeys.Remove(keyCode);
-			HEADS.Remove(keyCode);
+			ActiveKeys.Remove(KeyCode);
+			InactiveKeys.Remove(KeyCode);
+			HEADS.Remove(KeyCode);
 			key.Remove();
 			Map.OnStartGame -= Reset;
 			Map.OnStartRound -= Revive;
@@ -112,8 +141,8 @@ namespace Eight_Orbits.Entities {
 			}
 		}
 
-		private void Clear() {
-			IsLeader = false;
+		private void clear() {
+			NewColor();
 
 			if (dead) {
 				OnUpdate += Update;
@@ -121,6 +150,7 @@ namespace Eight_Orbits.Entities {
 				dead = false;
 			} else {
 				z = 0;
+				dashFrame = -1;
 				DashHideText = false;
 			}
 		}
@@ -157,14 +187,14 @@ namespace Eight_Orbits.Entities {
 
 			if (!orb.noOwner()) HEADS[orb.owner].tail.Remove(OrbId);
 
-			orb.newOwner(this.keyCode);
+			orb.newOwner(this.KeyCode);
 			tail.Add(OrbId);
 		}
 
 		public void Revive() {
 			this.act = Activities.STARTROUND;
 			this.pos = IPoint.Center;
-			this.v.A = 2 * Math.PI / ActiveKeys.Count * ActiveKeys.IndexOf(keyCode) + StartRotation;
+			this.v.A = 2 * Math.PI / ActiveKeys.Count * ActiveKeys.IndexOf(KeyCode) + StartRotation;
 			Kills = 0;
 			this.debug_kills = 0;
 			this.killed.Clear();
@@ -197,8 +227,8 @@ namespace Eight_Orbits.Entities {
 
 			this.act = Activities.DEAD;
 
-			ActiveKeys.Remove(this.keyCode);
-			InactiveKeys.Insert(0, this.keyCode);
+			ActiveKeys.Remove(this.KeyCode);
+			InactiveKeys.Insert(0, this.KeyCode);
 			key.Die();
 			tail.Die();
 			z = 0;
@@ -213,10 +243,10 @@ namespace Eight_Orbits.Entities {
 
 			Map.Sort();
 			IKey.UpdateAll();
-			if (ActiveKeys.Count == 1) new Thread(Map.EndRound).Start();
+			if (ActiveKeys.Count == 1 && Map.phase != Phases.ENDROUND) new Thread(Map.EndRound).Start();
 		}
 
-		private volatile object lock_reward = new {};
+		private readonly object lock_reward = new {};
 		public byte Reward(byte OrbId, Keys victim) {
 			byte temp;
 			lock (MVP.RecordsLock) {
@@ -225,7 +255,7 @@ namespace Eight_Orbits.Entities {
 						return 0;
 					else
 						killed.Add(victim);
-					this.debug_kills++;
+					if (ChaosMode && Leader == victim) Leader = this.KeyCode;
 					OnReward?.Invoke();
 					temp = this.Points;
 					this.Points += ++Kills;
@@ -292,35 +322,54 @@ namespace Eight_Orbits.Entities {
 
 				default: return;//throw new NotImplementedException();
 			}
+			
+			Activities temp = this.act;
+			if (this.act == Activities.ORBITING)
+				this.act = Activities.DEFAULT;
 
 			//collisions
-			if (pos.X < HeadR) v.X = Math.Abs(v.X);
-			else if (pos.X > W - HeadR) v.X = -Math.Abs(v.X);
-
-			else if (pos.Y < HeadR) v.Y = Math.Abs(v.Y);
-			else if (pos.Y > W / 2 - HeadR) v.Y = -Math.Abs(v.Y);
+			if (pos.X < HeadR) {
+				v.X = Math.Abs(v.X);
+				NewColor();
+			} else if (pos.X > W - HeadR) {
+				v.X = -Math.Abs(v.X);
+				NewColor();
+			} else if (pos.Y < HeadR) {
+				v.Y = Math.Abs(v.Y);
+				NewColor();
+			} else if (pos.Y > W / 2 - HeadR) {
+				v.Y = -Math.Abs(v.Y);
+				NewColor();
+			}
 
 			else if (pos.X + pos.Y < C + HeadR * sqrt2 && v * new IVector(-1, -1) >= 0) {
 				v.A += Math.PI / 4d;
 				v.Y = Math.Abs(v.Y);
 				v.A -= Math.PI / 4d;
+				NewColor();
 			} else if (W - pos.X + pos.Y < C + HeadR * sqrt2 && v * new IVector(1, -1) >= 0) {
 				v.A -= Math.PI / 4d;
 				v.Y = Math.Abs(v.Y);
 				v.A += Math.PI / 4d;
+				NewColor();
 			} else if (W / 2 + pos.X - pos.Y < C + HeadR * sqrt2 && v * new IVector(-1, 1) >= 0) {
 				v.A += Math.PI - Math.PI / 4d;
 				v.Y = Math.Abs(v.Y);
 				v.A += Math.PI / 4d - Math.PI;
+				NewColor();
 			} else if (W + W / 2f - pos.X - pos.Y < C + HeadR * sqrt2 && v * new IVector(1, 1) >= 0) {
 				v.A += Math.PI / 4d + Math.PI;
 				v.Y = Math.Abs(v.Y);
 				v.A += -Math.PI - Math.PI / 4d;
+				NewColor();
+			} else {
+				this.act = temp;
 			}
 		}
 
 		public void Draw(Graphics g) {
 			r = HeadR;
+			if (act == Activities.DEAD) return;
 			Bitmap bmp = new Bitmap((int) Math.Ceiling(r * 2), (int) Math.Ceiling(r * 2));
 			Graphics frame = Graphics.FromImage(bmp);
 			SizeF sz = g.MeasureString(DisplayKey, new Font(Program.FONT, r-1));
@@ -330,7 +379,7 @@ namespace Eight_Orbits.Entities {
 			frame.ScaleTransform((r - z) / r, 1);
 			frame.FillEllipse(new SolidBrush(color), -r, -r, r * 2, r * 2);
 			if (ContrastMode) frame.DrawEllipse(Pens.Black, .5f - r, .5f - r, r * 2 - 1, r * 2 - 1);
-			if (!DashHideText) frame.DrawString(DisplayKey, new Font(Program.FONT, r-1),	Brushes.White, -sz.Width / 2, -sz.Height / 2);
+			if (!DashHideText && !(ChaosMode && Map.phase == Phases.NONE && state == States.INGAME)) frame.DrawString(DisplayKey, new Font(Program.FONT, r-1),	Brushes.White, -sz.Width / 2, -sz.Height / 2);
 			
 			g.DrawImage(bmp, (float) pos.X - r, (float) pos.Y - r);
 		}
@@ -358,20 +407,19 @@ namespace Eight_Orbits.Entities {
 			return Color.FromArgb(a, r, g, b);
 		}
 
-		public override bool Equals(object obj) {
-			return this.GetHashCode() == obj.GetHashCode();
+		public void NewColor(bool red) => this.color = red? Color.Red : generate_color();
+
+		public void NewColor() {
+			if (Gamemode == Gamemodes.CHAOS_RAINBOW)
+				this.color = generate_color();
 		}
 
-		public override int GetHashCode() {
-			return this.keyCode.GetHashCode();
-		}
+		public override bool Equals(object obj) => this.GetHashCode() == obj.GetHashCode();
 
-		public static bool operator == (Head h, Head H) {
-			return h.keyCode.GetHashCode() == H.keyCode.GetHashCode();
-		}
+		public override int GetHashCode() => this.KeyCode.GetHashCode();
 
-		public static bool operator != (Head h, Head H) {
-			return h.keyCode.GetHashCode() != H.keyCode.GetHashCode();
-		}
-    }
+		public static bool operator ==(Head h, Head H) => h.KeyCode.GetHashCode() == H.KeyCode.GetHashCode();
+
+		public static bool operator !=(Head h, Head H) => h.KeyCode.GetHashCode() != H.KeyCode.GetHashCode();
+	}
 }

@@ -147,6 +147,14 @@ namespace Eight_Orbits {
 			this.D = new Animatable(fromD, toD, ticks);
 			this.color = new AnimatableColor(fromColor, toColor, duration);
 		}
+
+		public Animation(IPoint start, int ticks, float fromR, float toR, float fromD, float toD, Color fromColor, Color toColor, AnimationTypes type) : this() {
+			this.pos = (PointF) start;
+			this.duration = ticks;
+			this.R = new Animatable(fromR, toR, ticks, type);
+			this.D = new Animatable(fromD, toD, ticks, type);
+			this.color = new AnimatableColor(fromColor, toColor, duration, type);
+		}
 		
 		public Animation(IPoint start, int ticks, float fromR, float toR, float fromD, float toD, Color fromColor, int toAlpha, AnimationTypes type) : this() {
 			this.pos = (PointF) start;

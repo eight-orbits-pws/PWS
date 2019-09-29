@@ -28,7 +28,7 @@ namespace Eight_Orbits.Entities {
 		private Animatable contrast_color = new Animatable(0, 5);
 
 		private byte id = 0;
-		public byte ID { get { return id; } }
+		public byte ID => id;
 
 		public Orb() : this(false) { }
 
@@ -44,10 +44,12 @@ namespace Eight_Orbits.Entities {
 			Map.OnClearRemove += Remove;
 			OnUpdate += Update;
 			window.DrawWhite += Draw;
+			window.UpdateColors += update_color;
 		}
 
 		public void Remove() {
 			OnUpdate -= Update;
+			window.UpdateColors -= update_color;
 			lock (OrbLock) All.Remove(this);
 		}
 
@@ -171,7 +173,11 @@ namespace Eight_Orbits.Entities {
 			g.RotateTransform((float) (v.A / Math.PI * 180d + 90d));
 			if (ContrastMode) g.FillEllipse(new SolidBrush(color), -4,-4,8,8);
 
-			string str = HEADS[owner].Kills.ToString();
+			string str;
+			if (this.owner != Keys.None) str = HEADS[owner].Kills.ToString();
+			else {
+				str = "!";
+			}
 			Font font = new Font(FONT, r);
 			SizeF sz = g.MeasureString(str, font);
 			g.DrawString(str, font, Brushes.White, -sz.Width / 2, -sz.Height / 2);
@@ -197,6 +203,7 @@ namespace Eight_Orbits.Entities {
 				OnUpdate -= Update;
 				window.DrawWhite -= Draw;
 				if (state == OrbStates.SPAWN) Map.newOrb();
+				if (TutorialActive && newowner != Keys.F13 && newowner != Keys.F14 && state == OrbStates.SPAWN) new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, 255, 255, 255), 0);
 				eaten = true;
 				info = false;
 				this.owner = newowner;
@@ -207,6 +214,10 @@ namespace Eight_Orbits.Entities {
 
 		public bool noOwner() {
 			return this.owner == Keys.None;
+		}
+
+		private void update_color() {
+			if (this.owner != Keys.None) this.color = HEADS[owner].color;
 		}
     }
 }
