@@ -190,7 +190,7 @@ namespace Eight_Orbits {
             {
                 if (ActiveKeys.Count != 0) return;
 
-                BotArena arena = new BotArena(4, BotArena.Type.CONTINUEOUS);
+                BotArena arena = new BotArena(5, BotArena.Type.MAX_POINTS);
 
                 Map = arena;
                 arena.AddBots(false);

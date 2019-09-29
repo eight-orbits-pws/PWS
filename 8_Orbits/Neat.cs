@@ -276,7 +276,7 @@ namespace Neural_Network
             hsv.s = from.color.GetSaturation();
             hsv.v = from.color.GetBrightness();
 
-            hsv.h *= (float)R.NextDouble() * 0.5f - 1f;
+            hsv.h += (float)R.NextDouble() * 180 - 90;
             if (hsv.h < 0)
                 hsv.h += 1;
             if (hsv.h >= 1)
