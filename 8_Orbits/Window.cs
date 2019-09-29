@@ -124,9 +124,13 @@ namespace Eight_Orbits {
 				ContrastMode = !ContrastMode;
 				return;
 			} else if (e.KeyCode == Keys.F3) {
-				if (state == States.NEWGAME && Neat.All.Count < 22) {
-					new Neat(); /// create new BOT
-					IKey.UpdateAll();
+				if (state == States.NEWGAME && Neat.All.Count < 22)
+                {
+                    Neat n = new Neat();
+                    n.SetupGenZero();
+                    n.AddKey();
+
+                    IKey.UpdateAll();
 					Map.SetMaxPoints();
 				}
 				return;
@@ -155,7 +159,13 @@ namespace Eight_Orbits {
 				HEADS[InactiveKeys[0]].Reward(0, ActiveKeys[0]);
 				HEADS[ActiveKeys[0]].Die();
 				return;
-			} 
+			}
+
+            else if (e.KeyCode == Keys.F10)
+            {
+                SyncUpdate = !SyncUpdate;
+                return;
+            }
 
 			else if (e.KeyCode == Keys.F7) {
 				SlowMo = true;
@@ -175,6 +185,23 @@ namespace Eight_Orbits {
 				return;
 				// trigger tutorial
 			}
+
+            else if (e.KeyCode == Keys.F6)
+            {
+                if (ActiveKeys.Count != 0) return;
+
+                BotArena arena = new BotArena(4, BotArena.Type.CONTINUEOUS);
+
+                Map = arena;
+                arena.AddBots(false);
+                Map.StartGame();
+
+                Ingame = true;
+                state = States.INGAME;
+
+                return;
+                // trigger bot arena
+            }
 			
 			else if (e.KeyCode == Keys.F5) {
 				switch (Gamemode) {

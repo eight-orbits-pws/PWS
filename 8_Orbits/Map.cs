@@ -37,8 +37,9 @@ namespace Eight_Orbits {
 		public event Action OnStartGame;
 		public event Action OnEndGame;
 
-		public World() {
-			OnClear += () => { };
+		public World()
+        {
+            OnClear += window.Clear;
 			//MVP.Winner += EndGame;
 			this.Orbits = maps.Standard;
 			OnUpdate += Update;
@@ -217,7 +218,7 @@ namespace Eight_Orbits {
 		}
 
 		public virtual void EndRound() {
-			Thread.CurrentThread.Name = "EndRound_Thread";
+			// Thread.CurrentThread.Name = "EndRound_Thread";
 			MVP.Analyze();
 			//OnEndRound();
 			if (phase != Phases.ENDGAME) phase = Phases.ENDROUND;

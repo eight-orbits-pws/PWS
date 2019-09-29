@@ -61,7 +61,7 @@ namespace Eight_Orbits.Entities {
 			new Thread(() => {
 				Thread.CurrentThread.Name = "BlastPop_Timer";
 				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning);
-				PopEnd();
+				lock(All) PopEnd();
 			}).Start();
 			Remove();
 		}
@@ -72,8 +72,11 @@ namespace Eight_Orbits.Entities {
 
 		public void Collect(Head head) {
 			for (int i = Orb.All.Count - 1; i >= 0; i--) {
-				Orb orb = Orb.All[i];
-				if (head.pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat(orb.ID);
+                if (i > Orb.All.Count - 1)
+                    i = Orb.All.Count - 1;
+
+                Orb orb = Orb.All[i];
+				if (head.pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat((byte)Orb.All.IndexOf(orb));
 			}
 		}
 

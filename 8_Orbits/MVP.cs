@@ -98,7 +98,7 @@ namespace Eight_Orbits {
 			if (Ace()) Add(MVPTypes.ACE);
 			if (HEADS[leader].Points < Map.MaxPoints)
 				Add(MVPTypes.POINTS, HEADS[leader].DisplayKey, HEADS[leader].Points.ToString());
-			else if (HEADS[leader].Points - HEADS[second].Points < 2)
+			else if (Map.MaxPoints != 0 && HEADS[leader].Points - HEADS[second].Points < 2)
 				Add(MVPTypes.TWO_PTS);
 			else if (Flawless()) {
 				winner = true;

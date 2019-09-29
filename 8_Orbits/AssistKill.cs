@@ -36,20 +36,35 @@ namespace Eight_Orbits {
 		}
 
 		private void execute() {
-			// delete outdated assists
-			foreach (Assist assist in data) if (assist.Tick + 13 <= Program.Tick) remove.Add(assist);
-			foreach (Assist assist in remove)
-				data.Remove(assist);
-			remove.Clear();
+            // delete outdated assists
+            for (int i = 0; i < data.Count; i++)
+            {
+                Assist assist = data[i];
+                if (assist.Tick + 13 <= Program.Tick) remove.Add(assist);
+            }
 
-			foreach (Assist kill in analyze)
-				foreach (Assist assist in data)
-					if (Assist.Confirm(assist, kill))
+            for (int i = 0; i < remove.Count; i++)
+            {
+                Assist assist = remove[i];
+                data.Remove(assist);
+            }
+
+            remove.Clear();
+
+            for (int i = 0; i < analyze.Count; i++)
+            {
+                Assist kill = analyze[i];
+                for (int j = 0; j < data.Count; j++)
+                {
+                    Assist assist = data[j];
+                    if (Assist.Confirm(assist, kill))
 						MVP.Add(Properties.MVPTypes.ASSIST, 
 								Head.getKeyString(kill.H0), Head.getKeyString(kill.H1)
 							);
+                }
+            }
 
-			analyze.Clear();
+            analyze.Clear();
 		}
 	}
 

@@ -21,13 +21,11 @@ namespace Neural_Network {
 
 	abstract class Neuron {
 		protected double input;
-		protected double bias;
 		protected double value;
 		protected int index;
 		public List<Axon> axons = new List<Axon>();
 
 		public double Input { get { return input; } }
-		public double Bias { get { return bias; } }
 		public double Value { get { return value; } }
 		public int Index { get { return index; } }
 		public List<Axon> Axons { get { return axons; } }
@@ -40,7 +38,6 @@ namespace Neural_Network {
 		public Neuron(Neat sender, int index) : this(sender) {
 			this.index = index;
 			this.input = 0;
-			this.bias = MathNNW.R * 2 - 1;
 			this.value = 0;
 		}
 
@@ -57,15 +54,12 @@ namespace Neural_Network {
 			input += d;
 		}
 
-		public void mutate() {
-			throw new NotImplementedException();
-		}
-
-		protected virtual void reset() {
+		public virtual void reset() {
 			input = 0;
 		}
 
 		protected abstract void remove();
+
 	}
 
 	

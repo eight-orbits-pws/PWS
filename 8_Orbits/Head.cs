@@ -17,7 +17,7 @@ namespace Eight_Orbits.Entities {
 		public byte Points = 0;
 		public byte Kills = 0;
 		public int debug_kills = 0;
-		private HashSet<Keys> killed = new HashSet<Keys>();
+        public HashSet<Keys> killed = new HashSet<Keys>();
 		public byte index = 0;
 
 		public IPoint orbitCenter;
@@ -63,7 +63,7 @@ namespace Eight_Orbits.Entities {
 			this.key = new IKey(KeyCode, DisplayKey, color);
 			ActiveKeys.Add(KeyCode);
 
-			nnw.SetKey(KeyCode);
+			nnw.Key = KeyCode;
 			nnw.Fire += Action;
 			nnw.KeyUp += key.Release;
 
@@ -134,7 +134,7 @@ namespace Eight_Orbits.Entities {
 			}
 		}
 
-		private void clear() {
+		public void clear() {
 			NewColor();
 
 			if (dead) {
@@ -210,7 +210,6 @@ namespace Eight_Orbits.Entities {
 				if (dead) return;
 				dead = true;
 			}
-			OnDie?.Invoke();
 			OnUpdate -= Update;
 			if (AnimationsEnabled)
 				window.DrawHead -= Draw;
@@ -237,7 +236,9 @@ namespace Eight_Orbits.Entities {
 			Map.Sort();
 			IKey.UpdateAll();
 			if (ActiveKeys.Count == 1 && Map.phase != Phases.ENDROUND) new Thread(Map.EndRound).Start();
-		}
+
+            OnDie?.Invoke();
+        }
 
 		private readonly object lock_reward = new {};
 		public byte Reward(byte OrbId, Keys victim) {
@@ -388,7 +389,7 @@ namespace Eight_Orbits.Entities {
 			return c;
 		}
 
-		private static Color generate_color() {
+		public static Color generate_color() {
 			int a, r, g, b;
 			double x = R.NextDouble();
 

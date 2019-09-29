@@ -27,14 +27,10 @@ namespace Eight_Orbits.Entities {
 		public bool isBullet = false;
 		private Animatable contrast_color = new Animatable(0, 5);
 
-		private byte id = 0;
-		public byte ID => id;
-
 		public Orb() : this(false) { }
 
 		public Orb(bool spawn) {
 			if (All.Count >= 256) return;
-			this.id = (byte) All.Count;
 			this.color = Color.White;
 			this.pos = spawn? Map.generateSpawnStartRound(OrbR) : Map.generateSpawn(OrbR);
 			this.r = OrbR;
