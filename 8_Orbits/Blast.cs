@@ -12,6 +12,7 @@ namespace Eight_Orbits.Entities {
 		public static volatile object BlastLock = new { };
 		public static List<Blast> All = new List<Blast>();
 		private Head head;
+		public bool Popped = false;
 
 		public static void Spawn() {
 			if (TutorialActive) return;
@@ -41,7 +42,7 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Update() {
-			if (state != States.INGAME || Map.phase == Phases.STARTROUND) return;
+			if (state != States.INGAME || Map.phase == Phases.STARTROUND || Popped) return;
 			lock (ActiveLock) {
 				foreach (Keys k in ActiveKeys) {
 					Head h = HEADS[k];
@@ -53,16 +54,19 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Pop(Head h) {
-			//if (ChaosMode) TriggerSlowMo(0);
+			Popped = true;
 			head = h;
 			_ = new Animation(pos, 13, BlastR, BlastRange, 5*Scale, 5*Scale, h.color, 200, AnimationTypes.SQRT);
 			window.DrawBlast -= Draw;
+
+			//Program.TriggerSlowMo(15);
 			int endtick = Tick + 13;
 			new Thread(() => {
 				Thread.CurrentThread.Name = "BlastPop_Timer";
 				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning);
 				PopEnd();
 			}).Start();
+
 			Remove();
 		}
 
@@ -73,7 +77,7 @@ namespace Eight_Orbits.Entities {
 		public void Collect(Head head) {
 			for (int i = Orb.All.Count - 1; i >= 0; i--) {
 				Orb orb = Orb.All[i];
-				if (head.pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat(orb.ID);
+				if (pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat(orb.ID);
 			}
 		}
 

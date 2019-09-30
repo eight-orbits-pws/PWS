@@ -46,7 +46,7 @@ namespace Eight_Orbits {
 				foreach (Assist assist in data)
 					if (Assist.Confirm(assist, kill))
 						MVP.Add(Properties.MVPTypes.ASSIST, 
-								Head.getKeyString(kill.H0), Head.getKeyString(kill.H1)
+								Head.getKeyString(assist.H0==kill.H1?assist.H1:assist.H0), Head.getKeyString(kill.H1)
 							);
 
 			analyze.Clear();

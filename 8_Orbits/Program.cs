@@ -130,7 +130,7 @@ namespace Eight_Orbits {
 					if (SlowMo) {
 						if (SpeedMo && frame % 3 != 0)
 							return;
-						else if (!SpeedMo && frame % 6 != 0)
+						else if (!SpeedMo && frame % 12 != 0)
 							return;
 					}
 					tick++;

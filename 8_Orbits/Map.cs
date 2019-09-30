@@ -5,7 +5,6 @@ using Eight_Orbits.Properties;
 using static Eight_Orbits.Program;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using System.Threading.Tasks;
 using System.Threading;
 
 namespace Eight_Orbits {
@@ -17,7 +16,7 @@ namespace Eight_Orbits {
 		int EndGameTime = 300;
 
 		public byte RoundsPassed = 0;
-		public BlastSpawn blastSpawn = (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
+		public BlastSpawn blastSpawn = BlastSpawn.ONE;// (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
 		
 		public HashSet<Orbit> Orbits { get; protected set; } = new HashSet<Orbit>();
 		IPoint tempCenter;
