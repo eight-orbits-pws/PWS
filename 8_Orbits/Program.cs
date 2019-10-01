@@ -230,9 +230,7 @@ namespace Eight_Orbits {
 		}
 
 		public static Task WaitUntilTick(int endtick) {
-			Task task = Task.Run(() => {
-					SpinWait.SpinUntil(() => Tick >= endtick);
-				});
+			Task task = Task.Run(() => SpinWait.SpinUntil(() => Tick >= endtick));
 			return task;
 		}
 

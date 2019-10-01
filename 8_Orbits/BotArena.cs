@@ -54,7 +54,7 @@ namespace Eight_Orbits
 
 			if (type == Type.CONTINUEOUS) {
 				/// in plaats van de orbs laten verdwijnen:
-				MaxOrbs = 16;
+				MaxOrbs = 6;
 				
 				/// kan ook zo: foreach (Head head in Program.HEADS.Values)
 				foreach (KeyValuePair<Keys, Entities.Head> head in Program.HEADS)

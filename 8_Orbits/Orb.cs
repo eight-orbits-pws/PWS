@@ -27,14 +27,17 @@ namespace Eight_Orbits.Entities {
 		public bool isBullet = false;
 		private readonly Animatable contrast_color = new Animatable(0, 5);
 
+		public readonly byte ID;
+
 		public Orb() : this(false) { }
 
 		public Orb(bool spawn) {
-			if (All.Count >= 256) return;
+			if (All.Count >= Map.MaxOrbs) return;
 			this.color = Color.White;
 			this.pos = spawn? Map.generateSpawnStartRound(OrbR) : Map.generateSpawn(OrbR);
 			this.r = OrbR;
 			this.v = IVector.Zero;
+			this.ID = (byte) All.Count;
 
 			lock (OrbLock) All.Add(this);
 			Map.OnClearRemove += Remove;
@@ -75,7 +78,7 @@ namespace Eight_Orbits.Entities {
 
 					case OrbStates.BULLET:
 						this.bulletTime++;
-						v.L = PHI * speed + speed * 2 / Math.Sqrt(this.bulletTime);
+						v.L = PHI * speed + speed * 2 / Math.Max(1, Math.Sqrt(this.bulletTime));
 
 						if (bulletTime >= 12 && Map.OutOfBounds(pos, OrbR)) {
 							color = Color.White;
@@ -163,12 +166,12 @@ namespace Eight_Orbits.Entities {
 				g.FillEllipse(new SolidBrush(AnimatableColor.Lurp(Color.Black, Color.White, (float) contrast_color)), (float) pos.X - 3, (float) pos.Y - 3, 6, 6);
 			}
 
-			//debug draw ID
+			/*debug draw ID
 			string txt;
-			if (All.Contains(this)) txt = All.IndexOf(this).ToString();
+			if (All.Contains(this)) txt = ID.ToString();
 			else txt = "?";
 			SizeF sz = g.MeasureString(txt, new Font(FONT, 8));
-			g.DrawString(txt, new Font(FONT, 8), Brushes.Gray, (float)pos.X - sz.Width / 2f, (float)pos.Y - sz.Height / 2f);
+			g.DrawString(txt, new Font(FONT, 8), Brushes.Gray, (float)pos.X - sz.Width / 2f, (float)pos.Y - sz.Height / 2f);*/
 		}
 
 		public void DrawKills(Graphics g) {

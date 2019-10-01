@@ -114,8 +114,7 @@ namespace Eight_Orbits {
 
 		IPoint log_index(int i) { lock (list_lock) return log[Math.Min((i + 1) * mBL, log.Count - 1)].Copy(); }
 
-		public IPoint logLast() { lock (list_lock) return log[Math.Min
-			(tail.Count * mBL, log.Count - 1)].Copy(); }
+		public IPoint logLast() { lock (list_lock) return log[Math.Min(tail.Count * mBL, log.Count - 1)].Copy(); }
 
 		public bool IsNotGrowing() => tail.Count * mBL == log.Count - 1;
 

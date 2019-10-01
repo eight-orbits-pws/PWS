@@ -14,8 +14,8 @@ namespace Eight_Orbits {
 		private float e;
 
 		private int startTick;
-		private int duration;
-		private AnimationTypes type;
+		private readonly int duration;
+		private readonly AnimationTypes type;
 
 		public Animatable(int duration)						: this(0, 0, duration, AnimationTypes.LINEAR) {}
 		public Animatable(float f, int duration)			: this(f, f, duration, AnimationTypes.LINEAR) {}
@@ -42,29 +42,30 @@ namespace Eight_Orbits {
 			if (n == this.e) return;
 			ended = false;
 			this.startTick = Program.Tick;
-			this.b = this.c;
+			this.b = Program.SyncUpdate? this.c : n;
 			this.e = n;
 		}
 
 		public event Action OnEnd;
 
 		private bool ended = false;
-		public bool Ended => Program.Tick - startTick >= duration && !ended;
+		public bool Ended => !Program.SyncUpdate || (Program.Tick - startTick >= duration && !ended);
 
 		public void Reset() {
 			ended = false;
 			this.startTick = Program.Tick;
 		}
-		
+
 		private void update() {
+			//if (!Program.SyncUpdate) return;
 			double p;
-			if (Ended) {
+			if (ended) {
+				p = 1;
+			} else if (Ended) {
 				p = 1;
 				ended = true;
 				OnEnd?.Invoke();
-			} else if (ended)
-				p = 1;
-			else {
+			} else {
 				p = (double)(Program.Tick - startTick) / duration;
 				p = Math.Max(0, Math.Min(p, 1));
 
@@ -123,6 +124,7 @@ namespace Eight_Orbits {
 		private readonly int starttick = 0;
 
 		public Animation() {
+			if (!Program.SyncUpdate) return;
 			starttick = Program.Tick;
 			Program.OnUpdate += Update;
 			Program.window.DrawHead += Draw;
@@ -187,7 +189,7 @@ namespace Eight_Orbits {
 		readonly Font font;
 
 		public Coin(IPoint pos, int points, Color color) {
-			if (points == 0) return;
+			if (points == 0 || !Program.SyncUpdate) return;
 			this.font = new Font(Program.FONT, 16 * Program.Scale, FontStyle.Bold);
 			this.text = "+" + points;
 			SizeF sz = Program.window.CreateGraphics().MeasureString(text, font);
@@ -197,7 +199,7 @@ namespace Eight_Orbits {
 			this.m = new Animatable(-.72f, 0, 100, AnimationTypes.SIN);
 			this.c = new SolidBrush(color);
 
-			Program.window.OnUpdateAnimation += Update;
+			Program.OnUpdate += Update;
 			Program.window.DrawAnimation += Draw;
 			m.OnEnd += Remove;
 		}
