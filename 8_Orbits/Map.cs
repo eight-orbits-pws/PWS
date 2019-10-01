@@ -108,6 +108,7 @@ namespace Eight_Orbits {
 		}
 
 		public virtual void newOrb() {
+			if (Orb.All.Count >= this.MaxOrbs) return;
 			if (orbSpawn < 0) new Orb(false);
 			if (orbSpawn != 0) new Orb(false);
 		}

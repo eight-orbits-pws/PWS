@@ -25,7 +25,7 @@ namespace Eight_Orbits.Entities {
 		public bool eaten = false;
 		public bool info = false;
 		public bool isBullet = false;
-		private Animatable contrast_color = new Animatable(0, 5);
+		private readonly Animatable contrast_color = new Animatable(0, 5);
 
 		public Orb() : this(false) { }
 
@@ -220,5 +220,5 @@ namespace Eight_Orbits.Entities {
 		private void update_color() {
 			if (this.owner != Keys.None) this.color = HEADS[owner].color;
 		}
-    }
+	}
 }

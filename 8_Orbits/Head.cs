@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Neural_Network;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Eight_Orbits.Entities {
 	class Head : Circle, Visual {
@@ -29,8 +30,7 @@ namespace Eight_Orbits.Entities {
 
 		private bool bot = false;
 
-		private bool dead = false;
-		public bool Died => dead;
+		public bool Died { get; private set; } = false;
 
 		public bool INVINCIBLE = false;
 
@@ -137,10 +137,10 @@ namespace Eight_Orbits.Entities {
 		public void clear() {
 			NewColor();
 
-			if (dead) {
+			if (Died) {
 				OnUpdate += Update;
 				window.DrawHead += Draw;
-				dead = false;
+				Died = false;
 			} else {
 				z = 0;
 				dashFrame = -1;
@@ -207,8 +207,8 @@ namespace Eight_Orbits.Entities {
 
 		public void Die() {
 			lock (lock_die) {
-				if (dead) return;
-				dead = true;
+				if (Died) return;
+				Died = true;
 			}
 			OnUpdate -= Update;
 			if (AnimationsEnabled)
@@ -226,7 +226,7 @@ namespace Eight_Orbits.Entities {
 			z = 0;
 			DashHideText = false;
 
-			if (AnimationsEnabled && ActiveKeys.Count <= 12)
+			if (AnimationsEnabled && ActiveKeys.Count <= 12 && !(Map is BotArena))
 				new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, this.color), 0);
 			if (AnimationsEnabled)
 				new Animation(pos, 12, 0, 0, HeadR, HeadR, this.color, 32, AnimationTypes.CUBED);
@@ -237,7 +237,7 @@ namespace Eight_Orbits.Entities {
 			IKey.UpdateAll();
 			if (ActiveKeys.Count == 1 && Map.phase != Phases.ENDROUND) new Thread(Map.EndRound).Start();
 
-            OnDie?.Invoke();
+            if (OnDie != null) Parallel.Invoke(OnDie);
         }
 
 		private readonly object lock_reward = new {};
@@ -259,7 +259,7 @@ namespace Eight_Orbits.Entities {
 
 					if (Orb.All[OrbId].KillStreak > 1)
 						MVP.Add(MVPTypes.COLLATERAL, DisplayKey, Orb.All[OrbId].KillStreak.ToString());
-					if (dead)
+					if (Died)
 						MVP.Add(MVPTypes.GHOSTKILL, DisplayKey);
 				}
 			}

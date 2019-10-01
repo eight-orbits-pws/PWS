@@ -7,7 +7,6 @@ namespace Eight_Orbits.Properties {
 	interface Visual {
 		void Update();
 		void Draw(Graphics g);
-		void Clear();
 	}
 
 	public class Circle {

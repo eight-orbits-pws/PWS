@@ -46,24 +46,24 @@ namespace Eight_Orbits {
 
 		public void Die() {
             //int i;
-            if (!(Map is BotArena) || ((BotArena)Map).type != BotArena.Type.CONTINUEOUS)
-            {
+            ///if (!(Map is BotArena) || ((BotArena)Map).type != BotArena.Type.CONTINUEOUS)
+            ///{
                 lock (OrbLock)
                 {
                     foreach (Orb i in white) i.NewOwner();
                     for (int i = tail.Count - 1; i >= 0; i--) tail[i].NewOwner();
                 }
-            }
-            else
-            {
+            //}
+            //else
+            //{
 
-                lock (OrbLock)
-                {
-                    foreach (Orb i in white) i.Remove();
-                    for (int i = tail.Count - 1; i >= 0; i--) tail[i].Remove();
-                }
+                //lock (OrbLock)
+                //{
+                    //foreach (Orb i in white) i.Remove();
+                    //for (int i = tail.Count - 1; i >= 0; i--) tail[i].Remove();
+                //}
 
-            }
+            //}
 
 			Clear();
 		}

@@ -54,7 +54,7 @@ namespace Eight_Orbits
 
 			if (type == Type.CONTINUEOUS) {
 				/// in plaats van de orbs laten verdwijnen:
-				/// MaxOrbs = 16;
+				MaxOrbs = 16;
 				
 				/// kan ook zo: foreach (Head head in Program.HEADS.Values)
 				foreach (KeyValuePair<Keys, Entities.Head> head in Program.HEADS)
@@ -64,7 +64,7 @@ namespace Eight_Orbits
 
         public void OnDie()
         {
-            lock (Program.InactiveKeys)
+            lock (Program.ActiveLock)
             {
                 for (int i = Program.InactiveKeys.Count - 1; i >= 0; i--)
                 {
