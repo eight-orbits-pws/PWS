@@ -37,7 +37,6 @@ namespace Eight_Orbits {
 				}
 			});
 			//Map.OnStartGame += reset_tick;
-			Map.OnClear += window.Clear;
 			Map.spawnOrb();
 
 			if (AnimationsEnabled) {
@@ -56,7 +55,7 @@ namespace Eight_Orbits {
 		public static MyTimer NeuralThread;
 		public static AssistKill AssistThread;
 
-		public static volatile object updatinglocker = new { };
+        public static volatile object updatinglocker = new { };
 
 		/// <summary>
 		/// A few settings all together:
@@ -77,6 +76,7 @@ namespace Eight_Orbits {
 
 		private static World map;
 		public static World Map { get { return TutorialActive? TUTO : map; } set { map = value; } }
+
 		public static bool TutorialActive = false;
 		public static Tutorial TUTO;
 
@@ -120,7 +120,7 @@ namespace Eight_Orbits {
 		public static event Action OnUpdateNNW;
 		public static event KillEvent OnKill;
 
-		private static HashSet<Keys> check = new HashSet<Keys>();
+        private static HashSet<Keys> check = new HashSet<Keys>();
 
 		public static void Update() {
 			byte iframe = 0;
@@ -158,12 +158,14 @@ namespace Eight_Orbits {
 
 								lock (Orb.OrbLock) {
 									for (i = Orb.All.Count - 1; i >= 0; i--) {
+                                        if (i >= Orb.All.Count)
+                                            i = Orb.All.Count - 1;
 										orb = Orb.All[i];
 										if (p.Collide(orb)) {
 											if (orb.noOwner())
-												p.Eat(orb.ID);
+												p.Eat((byte) i);
 											else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING && !p.INVINCIBLE) {
-												new Coin(p.pos, HEADS[orb.owner].Reward(orb.ID, p.KeyCode), HEADS[orb.owner].color);
+												new Coin(p.pos, HEADS[orb.owner].Reward((byte)i, p.KeyCode), HEADS[orb.owner].color);
 												p.Die();
 												AssistThread.AddKill(orb.owner, p.KeyCode);
 												if (ChaosMode) TriggerSlowMo(30);

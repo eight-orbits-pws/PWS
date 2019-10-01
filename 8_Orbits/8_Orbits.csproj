@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="AssistKill.cs" />
     <Compile Include="Blast.cs" />
+    <Compile Include="BotArena.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="Head.cs" />
     <Compile Include="Key.cs" />

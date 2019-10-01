@@ -146,8 +146,12 @@ namespace Eight_Orbits {
 
 				bot.Remove();
 				bot1.Remove();
-				new Neural_Network.Neat();
-				IKey.UpdateAll();
+
+                Neural_Network.Neat n = new Neural_Network.Neat();
+                n.SetupGenZero();
+                n.AddKey();
+
+                IKey.UpdateAll();
 
 				Map.StartGame();
 			}).Start();
