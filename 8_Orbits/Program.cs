@@ -62,6 +62,7 @@ namespace Eight_Orbits {
 		public static bool AnimationsEnabled = true;
 		///	Disable to save energy and increase speed
 		public static bool SyncUpdate = true;
+		public static volatile bool ForcePaused = false;
 		/// Disable to calcute as fast as possible.
 		/// Don't wait for timestamps
 		public static Gamemodes Gamemode = Gamemodes.DEFAULT;
@@ -118,7 +119,6 @@ namespace Eight_Orbits {
 
 		public static event Action OnUpdate;
 		public static event Action OnUpdateNNW;
-		public static event KillEvent OnKill;
 
         private static HashSet<Keys> check = new HashSet<Keys>();
 
@@ -127,6 +127,7 @@ namespace Eight_Orbits {
 			do {
 				lock (updatinglocker) {
 					frame++;
+					SpinWait.SpinUntil(() => !(ForcePaused && ApplicationRunning));
 					if (SlowMo) {
 						if (SpeedMo && frame % 3 != 0)
 							return;
@@ -162,7 +163,7 @@ namespace Eight_Orbits {
                                             i = Orb.All.Count - 1;
 										orb = Orb.All[i];
 										if (p.Collide(orb)) {
-											if (orb.noOwner())
+											if (orb.NoOwner)
 												p.Eat((byte) i);
 											else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING && !p.INVINCIBLE) {
 												new Coin(p.pos, HEADS[orb.owner].Reward((byte)i, p.KeyCode), HEADS[orb.owner].color);
@@ -230,9 +231,7 @@ namespace Eight_Orbits {
 
 		public static Task WaitUntilTick(int endtick) {
 			Task task = Task.Run(() => {
-					SpinWait.SpinUntil(() => {
-						return Tick >= endtick;
-					});
+					SpinWait.SpinUntil(() => Tick >= endtick);
 				});
 			return task;
 		}
@@ -285,45 +284,6 @@ namespace Eight_Orbits {
 				Leader = p.KeyCode;
 			}
 		}
-
-		private class timeout {
-			private int starttick;
-			private int duration;
-			private Action e;
-			private bool ended;
-
-			public timeout(int ticks, Action e) {
-				this.starttick = Tick;
-				this.duration = ticks;
-				this.e = e;
-				this.ended = false;
-				Program.OnUpdate += update;
-				Map.OnClear += remove;
-			}
-
-			private void update() {
-				if (Tick - starttick >= duration) end();
-			}
-			
-			private void end() {
-				if (ended) return;
-				else ended = true;
-				e?.Invoke();
-				OnUpdate -= update;
-				remove();
-			}
-
-			private void remove() {
-				OnUpdate -= update;
-				Map.OnClear -= remove;
-			}
-		}
-
-		public static int BoolToInt(bool b) {
-			if (b) return 1;
-			else return 0;
-		}
-
-		private static void reset_tick() { }// tick = 0; }
+		public static int BoolToInt(bool v) => v? 1 : 0;
     }
 }

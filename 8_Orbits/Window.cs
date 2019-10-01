@@ -49,7 +49,7 @@ namespace Eight_Orbits {
 				DoubleBuffered = true;
 				Cursor.Hide();
 				
-				Paint += Window_Paint;
+				Paint += DrawPaint;
 				OutputTxt.Visible = false;
 			} else {
 				AutoScroll = true;
@@ -88,8 +88,8 @@ namespace Eight_Orbits {
 
 		private async void AsyncUpdateMath() {
 			while (ApplicationRunning) {
-				if (running) await Task.Run((Action) Program.Update);
-				else SpinWait.SpinUntil(() => running);
+				if (running) await Task.Run(Program.Update);
+				else SpinWait.SpinUntil(() => running || !ApplicationRunning);
 			}
 		}
 		
@@ -190,7 +190,7 @@ namespace Eight_Orbits {
             {
                 if (ActiveKeys.Count != 0) return;
 
-                BotArena arena = new BotArena(5, BotArena.Type.MAX_POINTS);
+                BotArena arena = new BotArena(6, BotArena.Type.CONTINUEOUS);
 
                 Map = arena;
                 arena.AddBots(false);
@@ -258,6 +258,7 @@ namespace Eight_Orbits {
 						state = States.PAUSED;
                         if (SyncUpdate)
 					        Program.UpdateThread.Pause();
+						else ForcePaused = true;
 						running = false;
 					} else if (ActiveKeys.Contains(ekey)) { //default action
 						HEADS[ekey].Action();
@@ -267,6 +268,7 @@ namespace Eight_Orbits {
 						state = States.INGAME;
 						Ingame = true;
 						if (SyncUpdate) UpdateThread.UnPause();
+						ForcePaused = false;
 						running = true;
 					} else if (e.KeyCode == Keys.Enter) { // let players join
 						HEADSOnPause = new Dictionary<Keys, Head>(HEADS);
@@ -285,7 +287,7 @@ namespace Eight_Orbits {
 		public volatile object draw_lock = new { };
 		private volatile bool drawing = false;
 		
-		public void Window_Paint(object sender, PaintEventArgs e) {
+		public void DrawPaint(object sender, PaintEventArgs e) {
 			Graphics g = e.Graphics;
 			g.CompositingQuality = CompositingQuality.HighSpeed;
 			g.SmoothingMode = SmoothingMode.HighQuality;
@@ -298,13 +300,16 @@ namespace Eight_Orbits {
 					Thread.CurrentThread.IsBackground = true;
 					Map?.Draw(g);
 
+					//lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.noOwner()) orb.Draw(g);
 					DrawWhite?.Invoke(g);
 					Blast.DrawAll(g);
 					DrawTail?.Invoke(g);
 					DrawBullet?.Invoke(g);
+					//lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.isBullet) orb.Draw(g);
 					DrawHead?.Invoke(g);
+
 					DrawKeys?.Invoke(g);
-					DrawAnimation?.Invoke(g);
+					//DrawAnimation?.Invoke(g);
 
 					if (ActiveKeys.Contains(Leader))
 						Map.DrawCrown(g);

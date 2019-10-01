@@ -5,7 +5,6 @@ using System.Windows.Forms;
 using static Eight_Orbits.Program;
 using Eight_Orbits.Properties;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Eight_Orbits.Entities {
 	class Blast : Circle, Visual {

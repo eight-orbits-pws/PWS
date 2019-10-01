@@ -59,152 +59,88 @@ namespace Eight_Orbits.Properties {
 			this.a = v.A;
 		}
 
-		public IVector Copy() {
-			return new IVector(this.x, this.y);
-		}
+		public IVector Copy => new IVector(this.x, this.y);
 
-		public static IVector operator +(IVector a, IVector b) {
-			return new IVector(a.X + b.X, a.Y + b.Y);
-		}
-
-		public static IVector operator -(IVector a, IVector b) {
-			return new IVector(a.X - b.X, a.Y - b.Y);
-		}
-
-		public static IVector operator -(IVector v) {
-			return new IVector(-v.X, -v.Y);
-		}
-
-		public static IVector operator *(double scalar, IVector v) {
-			return new IVector(scalar * v.X, scalar * v.Y);
-		}
-
-		public static IVector operator *(IVector v, double scalar) {
-			return new IVector(scalar * v.X, scalar * v.Y);
-		}
-
-		public static IVector operator /(IVector v, double d) {
-			return new IVector(v.X / d, v.Y / d);
-		}
-
+		public static IVector operator +(IVector a, IVector b) => new IVector(a.X + b.X, a.Y + b.Y);
+		public static IVector operator -(IVector a, IVector b) => new IVector(a.X - b.X, a.Y - b.Y);
+		public static IVector operator -(IVector v) => new IVector(-v.X, -v.Y);
+		public static IVector operator *(double scalar, IVector v) => new IVector(scalar * v.X, scalar * v.Y);
+		public static IVector operator *(IVector v, double scalar) => new IVector(scalar * v.X, scalar * v.Y);
+		public static IVector operator /(IVector v, double d) => new IVector(v.X / d, v.Y / d);
 		//dot product
-		public static double operator *(IVector a, IVector b) {
-			return a.X * b.X + a.Y * b.Y;
-		}
-
+		public static double operator *(IVector a, IVector b) => a.X * b.X + a.Y * b.Y;
 		//normalize
 		public static IVector operator ~(IVector v) {
 			v.L = 1;
 			return v;
 		}
 
-		public static bool operator ==(IVector a, IVector b) {
-			return a.x == b.x && a.y == b.y;
-		}
+		public static explicit operator IVector (System.Drawing.SizeF sz) => new IVector(sz.Width, sz.Height);
 
-		public static bool operator !=(IVector a, IVector b) {
-			return a.x != b.x || a.y != b.y;
-		}
+		public static bool operator ==(IVector a, IVector b) => a.x == b.x && a.y == b.y;
+		public static bool operator !=(IVector a, IVector b) => a.x != b.x || a.y != b.y;
 
+		public override bool Equals(object obj) => this.GetHashCode() == obj.GetHashCode();
+		public override int GetHashCode() => ((int)x ^ (int)y) ^ ((int)(x % 1D) ^ (int)(y % 1D));
 
-		public override bool Equals(object obj) {
-			return this.GetHashCode() == obj.GetHashCode();
-		}
-
-		public override int GetHashCode() {
-			return ((int)x ^ (int)y) ^ ((int)(x%1D) ^ (int)(y%1D));
-		}
-
-		public static IVector Up { get { return new IVector(0, -1); } }
-		public static IVector Right { get { return new IVector(1, 0); } }
-		public static IVector Down { get { return new IVector(0, 1); } }
-		public static IVector Left { get { return new IVector(-1, 0); } }
-		public static IVector Zero { get { return new IVector(0, 0); } }
+		public static IVector Up => new IVector(0, -1);
+		public static IVector Right => new IVector(1, 0);
+		public static IVector Down => new IVector(0, 1);
+		public static IVector Left => new IVector(-1, 0);
+		public static IVector Zero => new IVector(0, 0);
 	}
 
 	/// <summary>
 	/// Point
 	/// </summary>
 	public struct IPoint {
+		public double X { get; set; }
 
-		private double x;
-		private double y;
-
-		public double X {
-			get { return x;  }
-			set { x = value; }
-		}
-
-		public double Y {
-			get { return y; }
-			set { y = value; }
-		}
+		public double Y { get; set; }
 
 		public IPoint(double x, double y) {
-			this.x = x;
-			this.y = y;
+			this.X = x;
+			this.Y = y;
 		}
 
-		public IPoint Copy() {
-			return new IPoint(x, y);
-		}
+		public IPoint Copy() => new IPoint(X, Y);
 
-		public static IPoint Zero { get { return new IPoint(0, 0); } }
-		public static IPoint Center { get { return new IPoint(Program.W / 2, Program.W / 4); } }
+		public static IPoint Zero => new IPoint(0, 0);
+		public static IPoint Center => new IPoint(Program.W / 2, Program.W / 4);
 
-		public static explicit operator System.Drawing.PointF (IPoint p) {
-			return new System.Drawing.PointF((float) p.x, (float) p.y);
-		}
+		public static explicit operator System.Drawing.PointF(IPoint p) => new System.Drawing.PointF((float)p.X, (float)p.Y);
 
-		public static explicit operator System.Drawing.Point (IPoint p) {
-			return new System.Drawing.Point((int) p.x, (int) p.y);
-		}
+		public static explicit operator System.Drawing.Point(IPoint p) => new System.Drawing.Point((int)p.X, (int)p.Y);
 
 		//operator overloads
 		public static IPoint operator +(IPoint p, IVector v) {
-			p.x += v.X; p.y += v.Y;
+			p.X += v.X; p.Y += v.Y;
 			return p;
 		}
 
 		public static IPoint operator -(IPoint p, IVector v) {
-			p.x -= v.X; p.y -= v.Y;
+			p.X -= v.X; p.Y -= v.Y;
 			return p;
 		}
 
 		//create vector from b to a
-		public static IVector operator -(IPoint a, IPoint b) {
-			return new IVector(a.x - b.x, a.y - b.y);
-		}
+		public static IVector operator -(IPoint a, IPoint b) => new IVector(a.X - b.X, a.Y - b.Y);
 
 		//distance between
-		public static double operator *(IPoint a, IPoint b) {
-			return Sqrt(Pow(b.x - a.x, 2) + Pow(b.y - a.y, 2));
-		}
-		
+		public static double operator *(IPoint a, IPoint b) => Sqrt(Pow(b.X - a.X, 2) + Pow(b.Y - a.Y, 2));
+
 		//angle between
-		public static double operator ^(IPoint a, IPoint b) {
-			return Atan2(b.Y - a.Y, b.X - a.X);
-		}
+		public static double operator ^(IPoint a, IPoint b) => Atan2(b.Y - a.Y, b.X - a.X);
 
-		public static bool operator ==(IPoint a, IPoint b) {
-			return a.x == b.x && a.y == b.y;
-		}
+		public static bool operator ==(IPoint a, IPoint b) => a.X == b.X && a.Y == b.Y;
 
-		public static bool operator !=(IPoint a, IPoint b) {
-			return a.x != b.x || a.y != b.y;
-		}
+		public static bool operator !=(IPoint a, IPoint b) => a.X != b.X || a.Y != b.Y;
 
-		public override string ToString() {
-			return Round(x).ToString() + ", " + Round(y).ToString();
-		}
+		public override string ToString() => Round(X).ToString() + ", " + Round(Y).ToString();
 
-		public override int GetHashCode() {
-			return (int) (x * y);
-		}
+		public override int GetHashCode() => (int)(X * Y);
 
-		public override bool Equals(object obj) {
-			return obj.Equals(this);
-		}
+		public override bool Equals(object obj) => obj.Equals(this);
 	}
 
 	public struct Ray {

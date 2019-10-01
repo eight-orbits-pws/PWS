@@ -7,6 +7,7 @@ namespace Eight_Orbits.Properties {
 	interface Visual {
 		void Update();
 		void Draw(Graphics g);
+		void Clear();
 	}
 
 	public class Circle {
@@ -38,7 +39,7 @@ namespace Eight_Orbits.Properties {
 
 		public Circle(Circle c) {
 			this.pos = c.pos.Copy();
-			this.v = c.v.Copy();
+			this.v = c.v.Copy;
 			this.r = c.r;
 			this.color = c.color;
 		}

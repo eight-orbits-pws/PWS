@@ -50,8 +50,8 @@ namespace Eight_Orbits {
             {
                 lock (OrbLock)
                 {
-                    foreach (Orb i in white) i.newOwner();
-                    for (int i = tail.Count - 1; i >= 0; i--) tail[i].newOwner();
+                    foreach (Orb i in white) i.NewOwner();
+                    for (int i = tail.Count - 1; i >= 0; i--) tail[i].NewOwner();
                 }
             }
             else

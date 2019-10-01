@@ -198,12 +198,12 @@ namespace Neural_Network
 				Input[6 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
-				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.noOwner() && ray.Hit(orb)) distances.Add(ray.Distance(orb));
+				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.NoOwner&& ray.Hit(orb)) distances.Add(ray.Distance(orb));
 				if (distances.Count == 0) distances.Add(-1);
 				Input[7 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
-				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (ray.Hit(orb) && !orb.noOwner() && orb.owner != Key) distances.Add(ray.Distance(orb));
+				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (ray.Hit(orb) && !orb.NoOwner&& orb.owner != Key) distances.Add(ray.Distance(orb));
 				if (distances.Count == 0) distances.Add(-1);
 				Input[8 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
@@ -219,7 +219,8 @@ namespace Neural_Network
             // 66th input neuron
             Input[65].add(1); // Always on
 		}
-		
+
+
 		private void update() {
             if (Map.phase != Phases.NONE)
                 return;

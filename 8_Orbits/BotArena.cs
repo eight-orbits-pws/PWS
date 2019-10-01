@@ -52,9 +52,14 @@ namespace Eight_Orbits
                 Program.HEADS[bot.Key].color = Entities.Head.generate_color();
             }
 
-            if (type == Type.CONTINUEOUS)
-                foreach (KeyValuePair<Keys, Entities.Head> head in Program.HEADS)
-                    head.Value.OnDie += OnDie;
+			if (type == Type.CONTINUEOUS) {
+				/// in plaats van de orbs laten verdwijnen:
+				/// MaxOrbs = 16;
+				
+				/// kan ook zo: foreach (Head head in Program.HEADS.Values)
+				foreach (KeyValuePair<Keys, Entities.Head> head in Program.HEADS)
+					head.Value.OnDie += OnDie;
+			}
         }
 
         public void OnDie()

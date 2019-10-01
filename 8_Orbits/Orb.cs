@@ -45,6 +45,9 @@ namespace Eight_Orbits.Entities {
 
 		public void Remove() {
 			OnUpdate -= Update;
+			window.DrawWhite -= Draw;
+			window.DrawTail -= Draw;
+			window.DrawBullet -= Draw;
 			window.UpdateColors -= update_color;
 			lock (OrbLock) All.Remove(this);
 		}
@@ -146,7 +149,7 @@ namespace Eight_Orbits.Entities {
 			Brush clr;
 			if (state == OrbStates.TRAVELLING) {
 				clr = Brushes.White;
-				if (owner != Keys.None && HEADS[owner].Died) newOwner();
+				if (owner != Keys.None && HEADS[owner].Died) NewOwner();
 			} else if (state == OrbStates.BULLET) {
 				double c = Math.Pow(Math.Sin(bulletTime / 8), 2) * 2 / 3;
 				clr = new SolidBrush(Color.FromArgb((int)(color.R + (255 - color.R) * c), (int)(color.G + (255 - color.G) * c), (int)(color.B + (255 - color.B) * c)));
@@ -161,7 +164,11 @@ namespace Eight_Orbits.Entities {
 			}
 
 			//debug draw ID
-			//g.DrawString(this.ID.ToString(), new Font(FONT, 8), Brushes.Gray, (PointF) pos);
+			string txt;
+			if (All.Contains(this)) txt = All.IndexOf(this).ToString();
+			else txt = "?";
+			SizeF sz = g.MeasureString(txt, new Font(FONT, 8));
+			g.DrawString(txt, new Font(FONT, 8), Brushes.Gray, (float)pos.X - sz.Width / 2f, (float)pos.Y - sz.Height / 2f);
 		}
 
 		public void DrawKills(Graphics g) {
@@ -181,7 +188,7 @@ namespace Eight_Orbits.Entities {
 			g.ResetTransform();
 		}
 
-		public void newOwner() {
+		public void NewOwner() {
 			lock (OrbLock) {
 				this.owner = Keys.None;
 				this.color = Color.White;
@@ -194,7 +201,7 @@ namespace Eight_Orbits.Entities {
 			}
 		}
 
-		public void newOwner(Keys newowner) {
+		public void NewOwner(Keys newowner) {
 			lock (OrbLock) {
 				OnUpdate -= Update;
 				window.DrawWhite -= Draw;
@@ -208,9 +215,7 @@ namespace Eight_Orbits.Entities {
 			}
 		}
 
-		public bool noOwner() {
-			return this.owner == Keys.None;
-		}
+		public bool NoOwner => this.owner == Keys.None;
 
 		private void update_color() {
 			if (this.owner != Keys.None) this.color = HEADS[owner].color;

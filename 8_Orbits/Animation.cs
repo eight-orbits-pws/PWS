@@ -31,13 +31,11 @@ namespace Eight_Orbits {
 
 			this.startTick = Program.Tick;
 			Program.OnUpdate += update;
-			//else Program.window.OnUpdateAnimation += update;
 		}
 
 		public void Remove() {
 			this.OnEnd = null;
 			Program.OnUpdate -= update;
-			//else Program.window.OnUpdateAnimation -= update;
 		}
 
 		public void Set(float n) {
@@ -51,10 +49,7 @@ namespace Eight_Orbits {
 		public event Action OnEnd;
 
 		private bool ended = false;
-		public bool Ended { get {
-				return Program.Tick - startTick >= duration && !ended;
-			}
-		}
+		public bool Ended => Program.Tick - startTick >= duration && !ended;
 
 		public void Reset() {
 			ended = false;
@@ -102,32 +97,34 @@ namespace Eight_Orbits {
 			this.c = (float) (b + (this.e - b) * p);
 		}
 
-		public static float operator +(Animatable a) { return a.c; }
-		public static float operator +(float a, Animatable b) { return a + b.c; }
-		public static float operator +(Animatable a, float b) { return a.c + b; }
-		public static float operator -(Animatable a) { return -a.c; }
-		public static float operator -(float a, Animatable b) { return a - b.c; }
-		public static float operator -(Animatable a, float b) { return a.c - b; }
-		public static float operator *(Animatable a, float b) { return a.c * b; }
-		public static float operator *(float b, Animatable a) { return a.c * b; }
-		public static float operator /(Animatable a, float b) { return a.c / b; }
-		public static explicit operator int (Animatable a) { return (int) a.c; }
-		public static explicit operator float (Animatable a) { return a.c; }
+		public static float operator +(Animatable a) => a.c;
+		public static float operator +(float a, Animatable b) => a + b.c;
+		public static float operator +(Animatable a, float b) => a.c + b;
+		public static float operator -(Animatable a) => -a.c;
+		public static float operator -(float a, Animatable b) => a - b.c;
+		public static float operator -(Animatable a, float b) => a.c - b;
+		public static float operator *(Animatable a, float b) => a.c * b;
+		public static float operator *(float b, Animatable a) => a.c * b;
+		public static float operator /(Animatable a, float b) => a.c / b;
+		public static explicit operator int(Animatable a) { return (int)a.c; }
+		public static explicit operator float(Animatable a) => a.c;
 	}
 
 	public class Animation : Visual {
+		public static HashSet<Animation> All = new HashSet<Animation>();
+
 		private PointF pos;
-		private int duration;
+		private readonly int duration;
 
-		private Animatable R;
-		private Animatable D;
-		private AnimatableColor color;
+		private readonly Animatable R;
+		private readonly Animatable D;
+		private readonly AnimatableColor color;
 
-		private int starttick = 0;
+		private readonly int starttick = 0;
 
 		public Animation() {
 			starttick = Program.Tick;
-			Program.window.OnUpdateAnimation += Update;
+			Program.OnUpdate += Update;
 			Program.window.DrawHead += Draw;
 			Program.Map.OnClearRemove += End;
 		}
@@ -169,12 +166,11 @@ namespace Eight_Orbits {
 		}
 
 		public void Draw(Graphics g) {
-			//Pen pen = new Pen((Color) color, (float) D);
 			g.DrawEllipse(new Pen((Color) color, (float) D), pos.X - R - D/2f, pos.Y - R - D/2, R*2f+D, R*2f+D);
 		}
 
 		public void End() {
-			Program.window.OnUpdateAnimation -= Update;
+			Program.OnUpdate -= Update;
 			Program.window.DrawHead -= Draw;
 		}
 	}
@@ -183,12 +179,12 @@ namespace Eight_Orbits {
 		
 		PointF pos;
 		PointF shadow;
-		Animatable m;
-		Animatable x;
-		float offset;
-		Brush c;
-		string text;
-		Font font;
+		readonly Animatable m;
+		readonly Animatable x;
+		readonly float offset;
+		readonly Brush c;
+		readonly string text;
+		readonly Font font;
 
 		public Coin(IPoint pos, int points, Color color) {
 			if (points == 0) return;
