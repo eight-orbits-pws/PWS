@@ -25,6 +25,7 @@ namespace Eight_Orbits {
 		public static void Flash() {
 			int starttick = Tick;
 			new Thread(() => {
+				Thread.CurrentThread.Name = "Flash_MVP";
 				Show();
 				SpinWait.SpinUntil(() => Tick >= starttick + 60 || !ApplicationRunning);
 				Hide();
@@ -36,6 +37,7 @@ namespace Eight_Orbits {
 		public static void Add(MVPTypes type, string hero) {
 			if (type == MVPTypes.GHOSTKILL && Displaying == true) {
 				new Thread(() => {
+					Thread.CurrentThread.Name = "Ghostkill!";
 					DisplayText = "";
 					int tick = Tick + 1;
 					SpinWait.SpinUntil(() => Tick > tick || !ApplicationRunning);

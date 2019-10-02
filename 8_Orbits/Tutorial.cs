@@ -48,6 +48,7 @@ namespace Eight_Orbits {
 			Standard.Add(new Orbit(.9f, .8f, 1f / 13));
 			
 			new Thread(() => {
+				Thread.CurrentThread.Name = "Tutorial_Manager";
 				MVP.SetText("Tutorial");
 				MVP.Hide();
 				SpinWait.SpinUntil(() => step == 1 || !ApplicationRunning);
@@ -122,6 +123,7 @@ namespace Eight_Orbits {
 			MVP.Flash();
 			phase = Phases.ENDROUND;
 			if (ApplicationRunning) new Thread(() => {
+				Thread.CurrentThread.Name = "EndRound";
 				int endtick = Tick + 180;
 				SpinWait.SpinUntil(()=> Tick > endtick || !ApplicationRunning);
 				StartRound();
@@ -135,6 +137,7 @@ namespace Eight_Orbits {
 			//phase = Phases.ENDGAME;
 
 			if (ApplicationRunning) new Thread(() => {
+				Thread.CurrentThread.Name = "EndGame";
 				int endtick = Tick + 180;
 				SpinWait.SpinUntil(() => Tick > endtick || !ApplicationRunning);
 
@@ -259,6 +262,7 @@ namespace Eight_Orbits {
 			Blast.All.Add(blast);
 
 			new Thread(()=> {
+				Thread.CurrentThread.Name = "Blast_Animation";
 				int starttick = Tick;
 				new Animation(blast.pos, 30, BlastR, BlastRange / 5f, 5*Scale, 10*Scale, Color.White, Color.Yellow, AnimationTypes.SIN);
 				SpinWait.SpinUntil(()=> Tick >= starttick + 30 || !ApplicationRunning);

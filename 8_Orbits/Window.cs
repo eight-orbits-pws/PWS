@@ -301,12 +301,10 @@ namespace Eight_Orbits {
 					Thread.CurrentThread.IsBackground = true;
 					Map?.Draw(g);
 
-					//lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.noOwner()) orb.Draw(g);
 					DrawWhite?.Invoke(g);
 					Blast.DrawAll(g);
 					DrawTail?.Invoke(g);
 					DrawBullet?.Invoke(g);
-					//lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.isBullet) orb.Draw(g);
 					DrawHead?.Invoke(g);
 
 					DrawKeys?.Invoke(g);

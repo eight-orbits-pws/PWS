@@ -176,12 +176,15 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Eat(byte OrbId) {
-			Orb orb = Orb.All[OrbId];
+			lock (Orb.OrbLock) {
+				Orb orb = Orb.All[OrbId];
 
-			if (!orb.NoOwner) HEADS[orb.owner].tail.Remove(OrbId);
+				if (!orb.NoOwner)
+					HEADS[orb.owner].tail.Remove(OrbId);
 
-			orb.NewOwner(this.KeyCode);
-			tail.Add(OrbId);
+				orb.NewOwner(this.KeyCode);
+				tail.Add(OrbId);
+			}
 		}
 
 		public void Revive() {

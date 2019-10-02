@@ -23,12 +23,13 @@ namespace Eight_Orbits {
 				else window.StartAsyncUpdate();
 
 				if (SyncUpdate) NeuralThread = new MyTimer(120d / 1000d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
+				//Neural_Network.Neat.Main();
 				// else update in UpdateThread
 
 				AssistThread = new AssistKill();
 
 				if (AnimationsEnabled) {
-					if (SyncUpdate) VisualThread = new MyTimer(60d / 1000d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
+					if (SyncUpdate) VisualThread = new MyTimer(120d / 1000d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
 					else {
 						System.Timers.Timer timer = new System.Timers.Timer(60d / 1000d);
 						timer.Elapsed += window.Update_Visual;
@@ -136,9 +137,11 @@ namespace Eight_Orbits {
 					}
 					tick++;
 					OnUpdate?.Invoke();
-					
-					if (!SyncUpdate)
-						UpdateNeural();
+
+					if (!SyncUpdate) UpdateNeural();
+					/// update NNWs
+					//Neural_Network.Neat.GO = true;
+					//SpinWait.SpinUntil(() => !Neural_Network.Neat.GO || !ApplicationRunning);
 
 					if (state == States.INGAME) {
 
@@ -197,6 +200,7 @@ namespace Eight_Orbits {
 		public static void TriggerSlowMo(int length) {
 			if (SlowMo) return;
 			new Thread(() => {
+				Thread.CurrentThread.Name = "Trigger_SlowMo";
 				SlowMo = true;
 				SpeedMo = true;
 				int tick = Tick + length;
@@ -209,6 +213,7 @@ namespace Eight_Orbits {
 		public static void TriggerSuperSlowMo() {
 			if (SlowMo) return;
 			new Thread(() => {
+				Thread.CurrentThread.Name = "Trigger_SuperSlowMo";
 				SlowMo = true;
 				int tick = Tick;
 				SpinWait.SpinUntil(() => Tick >= tick + 20);
@@ -218,6 +223,7 @@ namespace Eight_Orbits {
 
 		public static void TriggerSpeedMo() {
 			new Thread(() => {
+				Thread.CurrentThread.Name = "Trigger_SpeedMo";
 				SpeedMo = true;
 				int tick = Tick;
 				SpinWait.SpinUntil(() => Tick >= tick + 60);

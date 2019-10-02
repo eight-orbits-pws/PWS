@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using static Eight_Orbits.Program;
 using static System.Math;
+using System.Threading;
 
 namespace Neural_Network
 {
@@ -130,26 +131,6 @@ namespace Neural_Network
             OnUpdateNNW += update;
             All.Add(this);
         }
-
-        public void SetupGenZero()
-        {
-            Mutate();
-            SetupAxons();
-        }
-
-        public void SetupAxons()
-        {
-			lock (ThinkLock) {
-				foreach (Neuron neuron in Input) neuron.axons.Clear();
-				foreach (Neuron neuron in Neurons) neuron.axons.Clear();
-				Output.axons.Clear();
-
-				foreach (Gene gene in Genes)
-					if (gene.enabled)
-						this[gene.from].axons.Add(gene.axon);
-			}
-        }
-
 		public void Remove() {
 			OnRemove?.Invoke();
 
@@ -224,16 +205,13 @@ namespace Neural_Network
             Input[65].add(1); // Always on
 		}
 
-
 		private void update() {
             if (Map.phase != Phases.NONE)
                 return;
 
-            try
-            {
-                fetch_input();
-
 				lock (ThinkLock) {
+
+                fetch_input();
 					foreach (Neuron nr in Input) nr.fireAxons(this);
 					foreach (Neuron nr in Neurons) nr.fireAxons(this);
 					Output.fireAxons(this);
@@ -247,14 +225,33 @@ namespace Neural_Network
                 if (outp && !lastOut) Fire?.Invoke(); // Check if it *started* pressing the key
                 else if (!outp && lastOut) KeyUp?.Invoke(); // Check if it *stopped* pressing the key
                 lastOut = outp;
-            }
-            catch (Exception e)
-            {
-                if (Map.phase != Phases.NONE)
-                    return;
-                Console.WriteLine(e);
-            }
+            //}
+            //catch (Exception e)
+            //{
+           //     if (Map.phase != Phases.NONE)
+           //         return;
+            //    Console.WriteLine(e);
+            //}
 		}
+		
+        public void SetupGenZero()
+        {
+            Mutate();
+            SetupAxons();
+        }
+
+        public void SetupAxons()
+        {
+			lock (ThinkLock) {
+				foreach (Neuron neuron in Input) neuron.axons.Clear();
+				foreach (Neuron neuron in Neurons) neuron.axons.Clear();
+				Output.axons.Clear();
+
+				foreach (Gene gene in Genes)
+					if (gene.enabled)
+						this[gene.from].axons.Add(gene.axon);
+			}
+        }
 
         public void FromParent(Neat parent)
         {
@@ -487,7 +484,7 @@ namespace Neural_Network
 		public static double Output(double x) => Max(0, Sign(x)); // 0 or 1
 		public static double Radial(double x) => Max(0, 1D-Abs(x));
 		public static double Sinus(double x) => Sin(x);
-        public static double Sigmoid(double x) => 2 / (1 + Exp(-4.9*x)) - 1; // between -1 and 1
+        public static double Sigmoid(double x) => 2 / (1 + Exp(-5*x)) - 1; // between -1 and 1
 		public static double R { get { return Program.R.NextDouble(); } }
 	}
 }
