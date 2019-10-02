@@ -63,7 +63,7 @@ namespace Eight_Orbits.Entities {
 			new Thread(() => {
 				Thread.CurrentThread.Name = "BlastPop_Timer";
 				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning);
-				lock(All) PopEnd();
+				lock(BlastLock) PopEnd();
 			}).Start();
 
 			Remove();

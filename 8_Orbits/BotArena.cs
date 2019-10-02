@@ -117,8 +117,8 @@ namespace Eight_Orbits
             child.FromParent(parent);
 
             // Print child
-            Console.WriteLine("---------------------------");
-            Console.WriteLine(a);
+            //Console.WriteLine("---------------------------");
+            //Console.WriteLine(a);
             foreach (Gene gene in child.Genes)
                 Console.WriteLine(gene);
         }
@@ -157,10 +157,10 @@ namespace Eight_Orbits
         {
             foreach (Neat bot in bots)
             {
-                Console.WriteLine("---------------------------");
-                Console.WriteLine(bot.Key);
-                foreach (Gene gene in bot.Genes)
-                    Console.WriteLine(gene);
+                //Console.WriteLine("---------------------------");
+                //Console.WriteLine(bot.Key);
+                //foreach (Gene gene in bot.Genes)
+                    //Console.WriteLine(gene);
             }
         }
 

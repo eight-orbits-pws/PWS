@@ -190,7 +190,7 @@ namespace Eight_Orbits {
             {
                 if (ActiveKeys.Count != 0) return;
 
-                BotArena arena = new BotArena(6, BotArena.Type.CONTINUEOUS);
+                BotArena arena = new BotArena(6, BotArena.Type.MAX_POINTS); /// <   -	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
 
                 Map = arena;
                 arena.AddBots(false);
@@ -228,6 +228,7 @@ namespace Eight_Orbits {
 					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) { // (re)start game
 						if (e.Shift) Map.ResumeGame();
 						else Map.StartGame();
+						ForcePaused = false;
 						Ingame = true;
 						state = States.INGAME;
 					} else if (e.KeyCode == Keys.Escape) { // clear all keys
@@ -309,7 +310,7 @@ namespace Eight_Orbits {
 					DrawHead?.Invoke(g);
 
 					DrawKeys?.Invoke(g);
-					//DrawAnimation?.Invoke(g);
+					DrawAnimation?.Invoke(g);
 
 					if (ActiveKeys.Contains(Leader))
 						Map.DrawCrown(g);

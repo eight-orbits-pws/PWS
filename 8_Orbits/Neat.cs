@@ -39,7 +39,8 @@ namespace Neural_Network
 		public Keys Key { get; set; }
 		public static List<Neat> All = new List<Neat>();
         bool lastOut = false;
-
+		
+		readonly object ThinkLock = new { };
         public List<InputNeuron> Input { get; } = new List<InputNeuron>(66);
         public List<StdNeuron> Neurons { get; }
         public OutputNeuron Output { get; set; }
@@ -94,12 +95,13 @@ namespace Neural_Network
 
         private void CopyFrom(Neat parent)
         {
-            for (int i = 0; i < parent.Input.Count; i++)
-                Input.Add(parent.Input[i].Clone(this));
-            for (int i = 0; i < parent.Neurons.Count; i++)
-                Neurons.Add(parent.Neurons[i].Clone(this));
-            Output = parent.Output.Clone(this);
-
+			lock (ThinkLock) {
+				for (int i = 0; i < parent.Input.Count; i++)
+					Input.Add(parent.Input[i].Clone(this));
+				for (int i = 0; i < parent.Neurons.Count; i++)
+					Neurons.Add(parent.Neurons[i].Clone(this));
+				Output = parent.Output.Clone(this);
+			}
             for (int i = 0; i < parent.Genes.Count; i++)
             {
                 Gene gene = parent.Genes[i];
@@ -137,13 +139,15 @@ namespace Neural_Network
 
         public void SetupAxons()
         {
-            foreach (Neuron neuron in Input) neuron.axons.Clear();
-            foreach (Neuron neuron in Neurons) neuron.axons.Clear();
-            Output.axons.Clear();
+			lock (ThinkLock) {
+				foreach (Neuron neuron in Input) neuron.axons.Clear();
+				foreach (Neuron neuron in Neurons) neuron.axons.Clear();
+				Output.axons.Clear();
 
-            foreach (Gene gene in Genes)
-                if (gene.enabled)
-                    this[gene.from].axons.Add(gene.axon);
+				foreach (Gene gene in Genes)
+					if (gene.enabled)
+						this[gene.from].axons.Add(gene.axon);
+			}
         }
 
 		public void Remove() {
@@ -229,13 +233,15 @@ namespace Neural_Network
             {
                 fetch_input();
 
-                foreach (Neuron nr in Input) nr.fireAxons(this);
-                foreach (Neuron nr in Neurons) nr.fireAxons(this);
-                Output.fireAxons(this);
+				lock (ThinkLock) {
+					foreach (Neuron nr in Input) nr.fireAxons(this);
+					foreach (Neuron nr in Neurons) nr.fireAxons(this);
+					Output.fireAxons(this);
 
-                foreach (Neuron nr in Input) nr.calc(this);
-                foreach (Neuron nr in Neurons) nr.calc(this);
-                Output.calc(this);
+					foreach (Neuron nr in Input) nr.calc(this);
+					foreach (Neuron nr in Neurons) nr.calc(this);
+					Output.calc(this);
+				}
 
                 bool outp = Output.Value > 0;
                 if (outp && !lastOut) Fire?.Invoke(); // Check if it *started* pressing the key
@@ -254,9 +260,11 @@ namespace Neural_Network
         {
             OnRemove?.Invoke();
 
-            Input.Clear();
-            Neurons.Clear();
-            Genes.Clear();
+			lock (ThinkLock) {
+				Input.Clear();
+				Neurons.Clear();
+				Genes.Clear();
+			}
             CopyFrom(parent);
 
             MutateEnable();
@@ -442,7 +450,7 @@ namespace Neural_Network
 		public StdNeuron(Neat sender, int index) : base(sender, index) { }
 
 		public override void calc(Neat nnw) {
-			value = MathNNW.Sigmoid(input);
+			value = MathNNW.Satlins(input);
             input = 0;
         }
 
@@ -460,7 +468,7 @@ namespace Neural_Network
 		public OutputNeuron(Neat sender, int index) : base(sender, index) { }
 
 		public override void calc(Neat nnw) {
-			value = MathNNW.Sigmoid(input);
+			value = MathNNW.Satlins(input);
             input = 0;
         }
 		
