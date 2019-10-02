@@ -168,7 +168,7 @@ namespace Neural_Network
 			Input[1].add(head.v.A / PI);
 			Input[2].add(head.pos.X / W * 2 - 1);
 			Input[3].add(head.pos.Y / W);
-			Input[4].add(head.tail.length == 0? -1 : 1 / head.tail.length);
+			lock (Orb.OrbLock) Input[4].add(head.tail.length == 0? -1 : 1 / head.tail.length);
 
             double diagonal = Sqrt(W ^ 2 + H ^ 2);
 
@@ -255,9 +255,9 @@ namespace Neural_Network
 
         public void FromParent(Neat parent)
         {
-            OnRemove?.Invoke();
 
 			lock (ThinkLock) {
+				OnRemove?.Invoke();
 				Input.Clear();
 				Neurons.Clear();
 				Genes.Clear();
