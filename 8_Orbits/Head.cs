@@ -177,14 +177,19 @@ namespace Eight_Orbits.Entities {
 
 		public void Eat(byte OrbId) {
 			lock (Orb.OrbLock) {
-				Orb orb = Orb.All[OrbId];
+				Orb orb;
+				//try {
+					orb = Orb.All[OrbId];
+				//} catch (ArgumentOutOfRangeException) {
+				//	return;
+				//}
 
 				if (!orb.NoOwner)
 					HEADS[orb.owner].tail.Remove(OrbId);
 
 				orb.NewOwner(this.KeyCode);
 				tail.Add(OrbId);
-			}
+				}
 		}
 
 		public void Revive() {

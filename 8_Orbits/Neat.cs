@@ -210,8 +210,7 @@ namespace Neural_Network
                 return;
 
 				lock (ThinkLock) {
-
-                fetch_input();
+					fetch_input();
 					foreach (Neuron nr in Input) nr.fireAxons(this);
 					foreach (Neuron nr in Neurons) nr.fireAxons(this);
 					Output.fireAxons(this);

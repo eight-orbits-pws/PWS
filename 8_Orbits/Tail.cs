@@ -38,9 +38,11 @@ namespace Eight_Orbits {
 		}
 
 		public void Shoot() {
-			if (tail.Count > 0) {
-				Orb.All[tail[0]].Pew();
-				lock (OrbLock) tail.RemoveAt(0);
+			lock (OrbLock) {
+				if (tail.Count > 0) {
+					Orb.All[tail[0]].Pew();
+					tail.RemoveAt(0);
+				}
 			}
 		}
 

@@ -52,7 +52,9 @@ namespace Eight_Orbits.Entities {
 			window.DrawTail -= Draw;
 			window.DrawBullet -= Draw;
 			window.UpdateColors -= update_color;
-			lock (OrbLock) All.Remove(this);
+			lock (OrbLock) {
+				All.Remove(this);
+			}
 		}
 
 		public void Pew() {

@@ -62,28 +62,27 @@ namespace Eight_Orbits.Entities {
 			int endtick = Tick + 13;
 			new Thread(() => {
 				Thread.CurrentThread.Name = "BlastPop_Timer";
-				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning);
-				lock(BlastLock) PopEnd();
+				SpinWait.SpinUntil(() => Tick >= endtick || !ApplicationRunning || Map.phase != Phases.NONE);
+				lock(BlastLock) if (Tick >= endtick) PopEnd();
 			}).Start();
 
 			Remove();
 		}
 
-		public void Draw(Graphics g) {
-			g.DrawEllipse(new Pen(Color.White, 5 * Scale), (float) pos.X - r, (float) pos.Y - r, r*2, r*2);
-		}
+		public void Draw(Graphics g) => g.DrawEllipse(new Pen(Color.White, 5 * Scale), (float)this.pos.X - r, (float)this.pos.Y - r, r * 2, r * 2);
 
+		/// do lock OrbLock on call
 		public void Collect(Head head) {
-			lock (Orb.OrbLock)
-				for (int i = Orb.All.Count - 1; i >= 0; i--) {
-					Orb orb = Orb.All[i];
-					if (pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet) head.Eat(orb.ID);
-				}
+			for (int i = Orb.All.Count - 1; i >= 0; i--) {
+				Orb orb = Orb.All[i];
+				if (pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet)
+					head.Eat(orb.ID);
+			}
 		}
 
 		public void PopEnd() {
 			if (!head.Died) {
-				Collect(head);
+				lock (Orb.OrbLock) Collect(head);
 				if (Map.blastSpawn != BlastSpawn.ONE) {
 					Blast blast;
 					for (int i = All.Count - 1; i >= 0; i--) {
