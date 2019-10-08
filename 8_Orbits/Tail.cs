@@ -9,23 +9,23 @@ using static Eight_Orbits.Entities.Orb;
 
 namespace Eight_Orbits {
 	class Tail {
-		List<byte> white = new List<byte>(256);
-		List<byte> tail = new List<byte>(256);
+		readonly List<byte> white = new List<byte>(256);
+		readonly List<byte> tail = new List<byte>(256);
 
-		volatile object list_lock = new { };
-		volatile List<IPoint> log = new List<IPoint>(); //backlog of posistions
+		readonly object list_lock = new { };
+		readonly List<IPoint> log = new List<IPoint>(); //backlog of posistions
 
 		public Tail() {
-			Map.OnClear += Clear;
+			Map.OnClear += clear;
 			window.DrawTail += Draw;
 		}
 		~Tail() {
-			Map.OnClear -= Clear;
+			Map.OnClear -= clear;
 			OnUpdate -= Update;
 			window.DrawTail -= Draw;
 		}
 
-		void Clear() {
+		private void clear() {
 			lock (OrbLock) white.Clear();
 			lock (OrbLock) tail.Clear();
 		}
@@ -47,40 +47,22 @@ namespace Eight_Orbits {
 		}
 
 		public void Die() {
-            //int i;
-            ///if (!(Map is BotArena) || ((BotArena)Map).type != BotArena.Type.CONTINUEOUS)
-            ///{
-                lock (OrbLock) {
-                    foreach (byte id in white) All[id].NewOwner();
-                    foreach (byte id in tail) All[id].NewOwner();
-                }
-            //}
-            //else
-            //{
+            lock (OrbLock) {
+                foreach (byte id in white) All[id].NewOwner();
+                foreach (byte id in tail) All[id].NewOwner();
+            }
 
-                //lock (OrbLock)
-                //{
-                    //foreach (Orb i in white) i.Remove();
-                    //for (int i = tail.Count - 1; i >= 0; i--) tail[i].Remove();
-                //}
-
-            //}
-
-			Clear();
+			clear();
 		}
 
 		public void Add(byte id) {
-			lock (OrbLock) {
-				white.Add(id);
-				Orb.All[id].r = OrbR / 2;
-			}
+			white.Add(id);
+			Orb.All[id].r = OrbR / 2;
 		}
 
 		public void Remove(byte id) {
-			lock (OrbLock) {
-				if (white.Remove(id)) All[id].r = OrbR;
-				else tail.Remove(id);
-			}
+			if (white.Remove(id)) All[id].r = OrbR;
+			else tail.Remove(id);
 		}
 
 		public int length => tail.Count;
@@ -122,8 +104,12 @@ namespace Eight_Orbits {
 		public bool IsNotGrowing() => tail.Count * mBL == log.Count - 1;
 
 		private void trim() {
-			int end = tail.Count * mBL;
-			lock (list_lock) log = log.GetRange(0, Math.Min(tail.Count * mBL, log.Count));
+			int l = log.Count;
+			int min = Math.Min(tail.Count * mBL, l);
+
+			lock (list_lock) {
+				log.RemoveRange(min, l - min);
+			}
 		}
 
 	}

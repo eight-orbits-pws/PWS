@@ -10,13 +10,14 @@ namespace Eight_Orbits {
 	class IKey : Visual {
 		private static float Ox000w = W;
 		public static float WIDTH {
-			get { return Ox000w; }
+			get => Ox000w;
 			set {
 				Ox000w = value;
-				foreach (Keys id in HEADS.Keys) HEADS[id].key.w.Set(Ox000w);
+				foreach (Keys id in HEADS.Keys)
+					HEADS[id].key.w.Set(Ox000w);
 			}
 		}
-		public static float HEIGHT = H - W / 2;
+		public static readonly float HEIGHT = H - W / 2;
 
 		public static void UpdateAll() {
 			foreach (Keys id in HEADS.Keys) HEADS[id].key.Update();
@@ -33,17 +34,17 @@ namespace Eight_Orbits {
 
 		//public byte index = 0;
 		private Animatable x = new Animatable(W, 48);
-		private Animatable w = new Animatable(0, 48);
-		private Animatable a = new Animatable(0, 10);
+		private readonly Animatable w = new Animatable(0, 48);
+		private readonly Animatable a = new Animatable(0, 10);
 		public byte points = 0;
 		public Keys owner = Keys.None;
-		string DKey;
+		readonly string DKey;
 		private bool pressed = false;
 		private bool dead = false;
 		//private Color color;
 		private Color transit = Color.Black;
 
-		private Font std_font = new Font(FONT, 20 * SZR);
+		private readonly Font std_font = new Font(FONT, 20 * SZR);
 
 		public IKey(Keys head, string DisplayKey, Color color) {
 			//index = (byte) Active.Count;
@@ -55,9 +56,7 @@ namespace Eight_Orbits {
 			window.DrawKeys += Draw;
 		}
 
-		public void Remove() {
-			window.DrawKeys -= Draw;
-		}
+		public void Remove() => window.DrawKeys -= Draw;
 
 		public void Press() {
 			if (dead) return;
@@ -84,13 +83,9 @@ namespace Eight_Orbits {
 			a.Set(1);
 		}
 
-		public void Add(int pts) {
-			new Coin(ref x, w/2, W/2 + HEIGHT * 3 / 4, pts, Color.White);
-		}
+		public void Add(int pts) => new Coin(ref this.x, this.w / 2, W / 2 + HEIGHT * 3 / 4, pts, Color.White);
 
-		public void Update() {
-			x.Set(get_index(owner) * WIDTH);
-		}
+		public void Update() => this.x.Set(get_index(owner) * WIDTH);
 
 		public void Draw(Graphics g) {
 			Color color = ChaosMode? Color.Red : HEADS[owner].color;

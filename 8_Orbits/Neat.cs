@@ -209,21 +209,21 @@ namespace Neural_Network
             if (Map.phase != Phases.NONE)
                 return;
 
-				lock (ThinkLock) {
-					fetch_input();
-					foreach (Neuron nr in Input) nr.fireAxons(this);
-					foreach (Neuron nr in Neurons) nr.fireAxons(this);
-					Output.fireAxons(this);
+			lock (ThinkLock) {
+				fetch_input();
+				foreach (Neuron nr in Input) nr.fireAxons(this);
+				foreach (Neuron nr in Neurons) nr.fireAxons(this);
+				Output.fireAxons(this);
 
-					foreach (Neuron nr in Input) nr.calc(this);
-					foreach (Neuron nr in Neurons) nr.calc(this);
-					Output.calc(this);
-				}
+				foreach (Neuron nr in Input) nr.calc(this);
+				foreach (Neuron nr in Neurons) nr.calc(this);
+				Output.calc(this);
+			}
 
-                bool outp = Output.Value > 0;
-                if (outp && !lastOut) Fire?.Invoke(); // Check if it *started* pressing the key
-                else if (!outp && lastOut) KeyUp?.Invoke(); // Check if it *stopped* pressing the key
-                lastOut = outp;
+            bool outp = Output.Value > 0;
+            if (outp && !lastOut) Fire?.Invoke(); // Check if it *started* pressing the key
+            else if (!outp && lastOut) KeyUp?.Invoke(); // Check if it *stopped* pressing the key
+            lastOut = outp;
             //}
             //catch (Exception e)
             //{

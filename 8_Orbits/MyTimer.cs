@@ -3,38 +3,35 @@ using System.Threading;
 
 namespace Eight_Orbits {
 	class MyTimer {
-		System.Timers.Timer t;
-		Thread exec;
-		Action executable;
+		readonly System.Timers.Timer timer;
+		readonly Thread exec;
+		readonly Action executable;
 
-		private int timeout = (int) Math.Pow(2, 14) - 1;
 		public volatile bool running = false;
 		readonly object execute_lock = new { };
 
 		public MyTimer(double interval, Action action, string name, bool IsBackground, ThreadPriority priority) {
 			this.executable = action;
 
-			System.Windows.Forms.Application.ApplicationExit += Application_ApplicationExit;
+			System.Windows.Forms.Application.ApplicationExit += application_applicationexit;
 
 			exec = new Thread(execute);
 			exec.Name = name;
 			exec.Priority = priority;
 			exec.IsBackground = IsBackground;
 			
-			t = new System.Timers.Timer(interval);
-			t.Elapsed += fire;
-			t.Start();
+			timer = new System.Timers.Timer(interval);
+			timer.Elapsed += fire;
+			timer.Start();
 			exec.Start();
 		}
 
-		private void Application_ApplicationExit(object sender, EventArgs e) {
-			t.Stop();
+		private void application_applicationexit(object sender, EventArgs e) {
+			timer.Stop();
 			running = true;
 		}
 
-		private void fire(object sender, EventArgs e) {
-			running = true;
-		}
+		private void fire(object sender, EventArgs e) => this.running = true;
 
 		private void execute() {
 			while (Program.ApplicationRunning) {
@@ -44,12 +41,7 @@ namespace Eight_Orbits {
 			}
 		}
 
-		public void Pause() {
-			t.Stop();
-		}
-
-		public void UnPause() {
-			t.Start();
-		}
+		public void Pause() => this.timer.Stop();
+		public void UnPause() => this.timer.Start();
 	}
 }

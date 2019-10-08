@@ -20,6 +20,8 @@ namespace Eight_Orbits {
 		public static long Time = 0;
 		public event Action UpdateColors;
 
+		private float scalar = 1;
+
 		Dictionary<Keys, Head> HEADSOnPause = new Dictionary<Keys, Head>();
 
 		public Label OutputTxt;
@@ -31,18 +33,21 @@ namespace Eight_Orbits {
 			InitializeComponent();
 			OutputTxt = (Label) Controls[0];
 			OutputTxt.Text = "Hello World!";
-			this.MaximizeBox = false;
+			this.MinimizeBox = true;
+			this.MaximizeBox = true;
+			this.FormBorderStyle = FormBorderStyle.FixedSingle;
 			Show();
 
 			//OnUpdate += () => OnUpdateAnimation?.Invoke();
 
 			if (AnimationsEnabled) {
-				this.Location = Screen.AllScreens[0].WorkingArea.Location;
+				//this.Location = Screen.AllScreens[0].WorkingArea.Location;
 				Bounds = Screen.AllScreens[0].WorkingArea;
-				Width = W = Bounds.Width;
-				H = (int)(W * 9f / 16f);
+				W = 1366;//Bounds.Width;
+				H = 768;//(int)(W * 9f / 16f);
 				C = W / 20f;
-				SZR = W / 1366f;
+				SZR = 1;
+				scalar = Width / 1366f;
 				BackColor = Color.Black;
 				FormBorderStyle = FormBorderStyle.None;
 				WindowState = FormWindowState.Maximized;
@@ -59,9 +64,20 @@ namespace Eight_Orbits {
 				SZR = 1;
 				
 			}
-			
+			MouseMove += this.Window_MouseMove;
+			Resize += on_resize;
 			KeyDown += window_keydown;
 			KeyUp += window_keyup;
+		}
+
+		private void Window_MouseMove(object sender, MouseEventArgs e) {
+			if (FullScreen) {
+				
+			}
+		}
+
+		private void on_resize(object sender, EventArgs e) {
+			this.scalar = this.DisplayRectangle.Width / 1366f;
 		}
 
 		public void Update_Visual(object sender, EventArgs e) {
@@ -78,7 +94,7 @@ namespace Eight_Orbits {
 			if (running) return;
 			running = true;
 
-			Thread t = new Thread(AsyncUpdateMath);
+			Thread t = new Thread(async_update_math);
 			t.IsBackground = false;
 			t.Priority = ThreadPriority.Highest;
 			t.Name = "Math_Thread";
@@ -86,11 +102,12 @@ namespace Eight_Orbits {
 			t.Start();
 		}
 
-		private async void AsyncUpdateMath() {
-			while (ApplicationRunning) {
-				if (running) await Task.Run(Program.Update);
-				else SpinWait.SpinUntil(() => running || !ApplicationRunning);
+		private void async_update_math() {
+			while (ApplicationRunning && !SyncUpdate) {
+				Program.Update();
 			}
+
+			running = false;
 		}
 		
 		private void window_keyup(object sender, KeyEventArgs e) {
@@ -124,23 +141,19 @@ namespace Eight_Orbits {
 				ContrastMode = !ContrastMode;
 				return;
 			} else if (e.KeyCode == Keys.F3) {
-				if (state == States.NEWGAME && Neat.All.Count < 22)
-                {
-                    Neat n = new Neat();
-                    n.SetupGenZero();
-                    n.AddKey();
+				if (state == States.NEWGAME && Neat.All.Count < 22) {
+					Neat n = new Neat();
+					n.SetupGenZero();
+					n.AddKey();
 
-                    IKey.UpdateAll();
+					IKey.UpdateAll();
 					Map.SetMaxPoints();
 				}
 				return;
-			} 
-			else if (e.KeyCode == Keys.F1) {
+			} else if (e.KeyCode == Keys.F1) {
 				// debug shortcut
 				return;
-			}
-			
-			else if (e.KeyCode == Keys.F4 && !e.Alt) {
+			} else if (e.KeyCode == Keys.F4 && !e.Alt) {
 				if (state == States.NEWGAME) {
 					if (Neat.All.Count > 0) {
 						Neat toRemove = Neat.All.Last();
@@ -150,30 +163,45 @@ namespace Eight_Orbits {
 					Map.SetMaxPoints();
 				}
 				return;
-			} 
-			
-			else if (e.KeyCode == Keys.F9 && e.Alt) {
+			} else if (e.KeyCode == Keys.F9 && e.Alt) {
 				if (ActiveKeys.Count == 0 || InactiveKeys.Count == 0)
 					return;
 
 				HEADS[InactiveKeys[0]].Reward(0, ActiveKeys[0]);
 				HEADS[ActiveKeys[0]].Die();
 				return;
-			}
-
-            else if (e.KeyCode == Keys.F10)
-            {
-                SyncUpdate = !SyncUpdate;
-                return;
-            }
-
-			else if (e.KeyCode == Keys.F7) {
+			} else if (e.KeyCode == Keys.F10) {
+				if (SyncUpdate) {
+					SyncUpdate = false;
+					UpdateThread.Pause();
+					NeuralThread.Pause();
+					StartAsyncUpdate();
+				} else {
+					SyncUpdate = true;
+					UpdateThread.UnPause();
+					NeuralThread.UnPause();
+				}
+				return;
+			} else if (e.KeyCode == Keys.F7) {
 				SlowMo = true;
 				return;
-			}
-
-			else if (e.KeyCode == Keys.F8) {
+			} else if (e.KeyCode == Keys.F8) {
 				SpeedMo = true;
+				return;
+			} else if (e.KeyCode == Keys.F11) {
+				FullScreen = !FullScreen;
+				if (FullScreen) {
+					Width = Screen.PrimaryScreen.Bounds.Width;
+					FormBorderStyle = FormBorderStyle.None;
+					WindowState = FormWindowState.Maximized;
+					Cursor.Hide();
+				} else {
+					Width = 1024;
+					Height = 600;
+					FormBorderStyle = FormBorderStyle.Sizable;
+					WindowState = FormWindowState.Normal;
+					Cursor.Show();
+				}
 				return;
 			}
 
@@ -286,37 +314,38 @@ namespace Eight_Orbits {
 		}
 
 		public volatile object draw_lock = new { };
-		private volatile bool drawing = false;
+		private volatile bool drawing = true;
 		
 		public void DrawPaint(object sender, PaintEventArgs e) {
+			if (!drawing) return;
 			Graphics g = e.Graphics;
-			g.CompositingQuality = CompositingQuality.HighSpeed;
-			g.SmoothingMode = SmoothingMode.HighQuality;
+			g.CompositingQuality = CompositingQuality.HighQuality;
+			g.SmoothingMode = SmoothingMode.AntiAlias;
 			g.InterpolationMode = InterpolationMode.Low;
 			g.TextRenderingHint = TextRenderingHint.AntiAlias;
 
-			if (!drawing) {
-				lock (draw_lock) {
-					drawing = true;
-					Thread.CurrentThread.IsBackground = true;
-					Map?.Draw(g);
+			g.ScaleTransform(scalar, scalar);
+				//lock (draw_lock) {
 
-					DrawWhite?.Invoke(g);
-					Blast.DrawAll(g);
-					DrawTail?.Invoke(g);
-					DrawBullet?.Invoke(g);
-					DrawHead?.Invoke(g);
+			Map?.Draw(g);
+			//if (draw_log != null) g.DrawImageUnscaled(draw_log, W/2, H/2);
 
-					DrawKeys?.Invoke(g);
-					DrawAnimation?.Invoke(g);
+			DrawWhite?.Invoke(g);
+			Blast.DrawAll(g);
+			DrawTail?.Invoke(g);
+			DrawBullet?.Invoke(g);
+			DrawHead?.Invoke(g);
 
-					if (ActiveKeys.Contains(Leader))
-						Map.DrawCrown(g);
+			DrawKeys?.Invoke(g);
+			DrawAnimation?.Invoke(g);
 
-					MVP.Draw(g);
-					drawing = false;
-				}
-			}
+			if (ActiveKeys.Contains(Leader))
+				Map.DrawCrown(g);
+
+			MVP.Draw(g);
+
+			//draw_log = new BufferedGraphics(). Bitmap.FromHbitmap(g.GetHdc());
+			//draw_log.MakeTransparent(MapColor);
 		}
 
 		public void Clear() {

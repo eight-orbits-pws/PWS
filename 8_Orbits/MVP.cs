@@ -2,6 +2,7 @@
 using Eight_Orbits.Properties;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Threading;
 using System.Windows.Forms;
 using static Eight_Orbits.Program;
@@ -14,7 +15,7 @@ namespace Eight_Orbits {
 
 		private static readonly Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN);
 		private static readonly Animatable Disappear = new Animatable(1, 0, 36, AnimationTypes.COS);
-		private static bool Displaying = true;
+		private static volatile bool Displaying = true;
 		private static string DisplayText = "Prepare!";
 		private static readonly Color color = Color.FromArgb(96, 32, 32, 32);
 
@@ -237,6 +238,7 @@ namespace Eight_Orbits {
 		}
 
 		public static void Draw(Graphics g) {
+			GraphicsState gstate = g.Save();
 			g.TranslateTransform(W / 2, W / 4f - (TutorialActive? W/7:0));
 			float r = Displaying? (float) Appear:(float) Disappear;
 
@@ -249,7 +251,7 @@ namespace Eight_Orbits {
 				g.FillRectangle(new SolidBrush(color), -W / 2, -50, W, 100);
 				g.DrawString(DisplayText, font, Program.ContrastMode? Brushes.White : Brushes.Black, -sz.Width / 2, -sz.Height / 2);
 			}
-			g.ResetTransform();
+			g.Restore(gstate);
 		}
 
 		private static string win_message(string hero) {

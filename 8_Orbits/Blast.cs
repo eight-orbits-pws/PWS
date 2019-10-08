@@ -8,10 +8,10 @@ using System.Threading;
 
 namespace Eight_Orbits.Entities {
 	class Blast : Circle, Visual {
-		public static volatile object BlastLock = new { };
-		public static List<Blast> All = new List<Blast>();
+		public static readonly object BlastLock = new { };
+		public static readonly List<Blast> All = new List<Blast>();
 		private Head head;
-		public bool Popped = false;
+		public volatile bool Popped = false;
 
 		public static void Spawn() {
 			if (TutorialActive) return;
@@ -73,16 +73,19 @@ namespace Eight_Orbits.Entities {
 
 		/// do lock OrbLock on call
 		public void Collect(Head head) {
-			for (int i = Orb.All.Count - 1; i >= 0; i--) {
-				Orb orb = Orb.All[i];
-				if (pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet)
-					head.Eat(orb.ID);
+			lock (Orb.OrbLock) {
+				for (int i = Orb.All.Count - 1; i >= 0; i--) {
+					Orb orb = Orb.All[i];
+					if (pos * orb.pos < BlastRange + OrbR && orb.owner != head.KeyCode && !orb.isBullet)
+						head.Eat(orb.ID);
+				}
 			}
 		}
 
 		public void PopEnd() {
 			if (!head.Died) {
-				lock (Orb.OrbLock) Collect(head);
+				Collect(head);
+
 				if (Map.blastSpawn != BlastSpawn.ONE) {
 					Blast blast;
 					for (int i = All.Count - 1; i >= 0; i--) {

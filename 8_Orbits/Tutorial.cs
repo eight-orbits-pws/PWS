@@ -156,7 +156,7 @@ namespace Eight_Orbits {
 
                 IKey.UpdateAll();
 
-				Map.StartGame();
+				Program.Map.StartGame();
 			}).Start();
 		}
 

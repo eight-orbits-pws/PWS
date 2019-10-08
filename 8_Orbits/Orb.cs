@@ -2,13 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using static Eight_Orbits.Program;
 
 namespace Eight_Orbits.Entities {
 	class Orb : Circle, Visual {
-		public static List<Orb> All = new List<Orb>(256);
-		public static volatile object OrbLock = new { };
+		public static readonly List<Orb> All = new List<Orb>(256);
+		public static readonly object OrbLock = new { };
 
 		public OrbStates state = OrbStates.SPAWN;
 		private short bulletTime = 0;
@@ -52,9 +53,7 @@ namespace Eight_Orbits.Entities {
 			window.DrawTail -= Draw;
 			window.DrawBullet -= Draw;
 			window.UpdateColors -= update_color;
-			lock (OrbLock) {
-				All.Remove(this);
-			}
+			// removing out of All happens in Map.Clear()
 		}
 
 		public void Pew() {
@@ -177,6 +176,7 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void DrawKills(Graphics g) {
+			GraphicsState gstate = g.Save();
 			g.TranslateTransform((float) pos.X, (float) pos.Y);
 			g.RotateTransform((float) (v.A / Math.PI * 180d + 90d));
 			if (ContrastMode) g.FillEllipse(new SolidBrush(color), -4,-4,8,8);
@@ -190,7 +190,7 @@ namespace Eight_Orbits.Entities {
 			SizeF sz = g.MeasureString(str, font);
 			g.DrawString(str, font, Brushes.White, -sz.Width / 2, -sz.Height / 2);
 
-			g.ResetTransform();
+			g.Restore(gstate);
 		}
 
 		public void NewOwner() {

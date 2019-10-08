@@ -10,10 +10,10 @@ using System.Windows.Forms;
 namespace Eight_Orbits {
 	class AssistKill {
 
-		private List<Assist> data = new List<Assist>();
-		private List<Assist> analyze = new List<Assist>();
-		private List<Assist> remove = new List<Assist>();
-		private Thread thread;
+		private readonly List<Assist> data = new List<Assist>();
+		private readonly List<Assist> analyze = new List<Assist>();
+		private readonly List<Assist> remove = new List<Assist>();
+		private readonly Thread thread;
 		private bool wait = false;
 
 		public AssistKill() {

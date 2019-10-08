@@ -14,24 +14,24 @@ namespace Eight_Orbits {
 		/// </summary>
 		
 		[STAThread]
-		static void Main() {
-			World.maps.Create();
+		public static void Main() {
+			World.Maps.Create();
 
 			Map = new World();
 			Parallel.Invoke(() => {
-				if (SyncUpdate) UpdateThread = new MyTimer(120d / 1000d, Update, "Update_Thread", false, ThreadPriority.AboveNormal);
+				if (SyncUpdate) UpdateThread = new MyTimer(1000d / 120d, Update, "Update_Thread", false, ThreadPriority.AboveNormal);
 				else window.StartAsyncUpdate();
 
-				if (SyncUpdate) NeuralThread = new MyTimer(120d / 1000d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
+				if (SyncUpdate) NeuralThread = new MyTimer(1000d / 120d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
 				//Neural_Network.Neat.Main();
 				// else update in UpdateThread
 
 				AssistThread = new AssistKill();
 
 				if (AnimationsEnabled) {
-					if (SyncUpdate) VisualThread = new MyTimer(120d / 1000d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
+					if (SyncUpdate) VisualThread = new MyTimer(1000d / 120d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
 					else {
-						System.Timers.Timer timer = new System.Timers.Timer(60d / 1000d);
+						System.Timers.Timer timer = new System.Timers.Timer(1000d / 60d);
 						timer.Elapsed += window.Update_Visual;
 						timer.Start();
 					}
@@ -40,6 +40,8 @@ namespace Eight_Orbits {
 			//Map.OnStartGame += reset_tick;
 			Map.spawnOrb();
 
+			Console.WriteLine(HeadR / W);
+
 			if (AnimationsEnabled) {
 				Application.EnableVisualStyles();
 				Application.VisualStyleState = System.Windows.Forms.VisualStyles.VisualStyleState.ClientAreaEnabled;
@@ -47,6 +49,7 @@ namespace Eight_Orbits {
 				Console.SetError(System.IO.TextWriter.Null);
 				//System.IO.
 			}
+
 			Application.ApplicationExit += stop_running;
 			Application.Run(window);
 		}
@@ -56,22 +59,24 @@ namespace Eight_Orbits {
 		public static MyTimer NeuralThread;
 		public static AssistKill AssistThread;
 
-        public static volatile object updatinglocker = new { };
+        public static readonly object updatinglocker = new { };
 
 		/// <summary>
 		/// A few settings all together:
 		public static bool AnimationsEnabled = true;
 		///	Disable to save energy and increase speed
-		public static bool SyncUpdate = true;
+		public static volatile bool SyncUpdate = true;
 		public static volatile bool ForcePaused = false;
 		/// Disable to calcute as fast as possible.
 		/// Don't wait for timestamps
 		public static Gamemodes Gamemode = Gamemodes.DEFAULT;
 		public static bool ChaosMode => Gamemode == Gamemodes.CHAOS_RAINBOW || Gamemode == Gamemodes.CHAOS_RED;
 		/// </summary>
-		public static bool ApplicationRunning = true;
-		public static bool SlowMo = false;
-		public static bool SpeedMo = false;
+		
+		public static volatile bool FullScreen = true;
+		public static volatile bool ApplicationRunning = true;
+		public static volatile bool SlowMo = false;
+		public static volatile bool SpeedMo = false;
 		private static void stop_running(object sender, EventArgs e) => ApplicationRunning = false;
 		
 		public static Window window = new Window();
@@ -79,31 +84,31 @@ namespace Eight_Orbits {
 		private static World map;
 		public static World Map { get { return TutorialActive? TUTO : map; } set { map = value; } }
 
-		public static bool TutorialActive = false;
+		public static volatile bool TutorialActive = false;
 		public static Tutorial TUTO;
 
-		public static Dictionary<Keys, Head> HEADS = new Dictionary<Keys, Head>();
-		public static volatile List<Keys> ActiveKeys = new List<Keys>();
-		public static volatile object ActiveLock = new { };
-		public static volatile List<Keys> InactiveKeys = new List<Keys>();
+		public static readonly Dictionary<Keys, Head> HEADS = new Dictionary<Keys, Head>();
+		public static readonly List<Keys> ActiveKeys = new List<Keys>();
+		public static readonly object ActiveLock = new { };
+		public static readonly List<Keys> InactiveKeys = new List<Keys>();
 
-		public static Random R = new Random();
-		public static TaskFactory Manager = new TaskFactory();
+		public static readonly Random R = new Random();
+		//public static TaskFactory Manager = new TaskFactory();
 
 		public static float HeadR => 32f * Scale;
 		public static float OrbR => 25f * Scale;
 		public static float BlastR => 28f * Scale;
 		public static float BlastRange => 256f * Scale;
 		public static double speed => PHI * 4d * Scale;
-		public static int W;
-		public static int H;
+		public static int W = 1366;
+		public static int H = 768;
 		public static float C;
 		public static float SZR;
-		public static int mBL = 14;
-		public static double sqrt2 = Math.Sqrt(2D);
-		public static double PHI = (Math.Sqrt(5D) + 1D) / 2D;
-		public static FontFamily FONT = FontFamily.GenericSansSerif;
-		public static double StartRotation = 1d; 
+		public static readonly int mBL = 14;
+		public static readonly double sqrt2 = Math.Sqrt(2D);
+		public static readonly double PHI = (Math.Sqrt(5D) + 1D) / 2D;
+		public static readonly FontFamily FONT = FontFamily.GenericSansSerif;
+		public static double StartRotation = 1d;
 
 		public static Keys Leader = Keys.None;
 
@@ -118,7 +123,7 @@ namespace Eight_Orbits {
 		private static ulong tick = 1;
 		public static int Tick => (int) tick;
 
-		public static event Action OnUpdate;
+		public static  event Action OnUpdate;
 		public static event Action OnUpdateNNW;
 
         private static HashSet<Keys> check = new HashSet<Keys>();
@@ -142,6 +147,7 @@ namespace Eight_Orbits {
 					/// update NNWs
 					//Neural_Network.Neat.GO = true;
 					//SpinWait.SpinUntil(() => !Neural_Network.Neat.GO || !ApplicationRunning);
+					
 
 					if (state == States.INGAME) {
 

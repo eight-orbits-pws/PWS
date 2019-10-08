@@ -13,16 +13,16 @@ namespace Eight_Orbits.Entities {
 	class Head : Circle, Visual {
 		private static byte bots = 0;
 
-		public Keys KeyCode = Keys.None;
+		public readonly Keys KeyCode;
 		public string DisplayKey;
 		public byte Points = 0;
 		public byte Kills = 0;
 		public int debug_kills = 0;
-        public HashSet<Keys> killed = new HashSet<Keys>();
+        public readonly HashSet<Keys> killed = new HashSet<Keys>();
 		public byte index = 0;
 
 		public IPoint orbitCenter;
-		public Tail tail = new Tail();
+		public readonly Tail tail = new Tail();
 
 		private float z = 0;
 		private sbyte dashFrame = -1;
@@ -35,7 +35,7 @@ namespace Eight_Orbits.Entities {
 		public bool INVINCIBLE = false;
 
 		public Activities act = Activities.DEFAULT;
-		public IKey key;
+		public readonly IKey key;
 
 		private Head() {
 			index = (byte) ActiveKeys.Count;
@@ -176,20 +176,18 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Eat(byte OrbId) {
-			lock (Orb.OrbLock) {
-				Orb orb;
-				//try {
-					orb = Orb.All[OrbId];
-				//} catch (ArgumentOutOfRangeException) {
-				//	return;
-				//}
+			Orb orb;
+			//try {
+			orb = Orb.All[OrbId];
+			//} catch (ArgumentOutOfRangeException) {
+			//	return;
+			//}
 
-				if (!orb.NoOwner)
-					HEADS[orb.owner].tail.Remove(OrbId);
+			if (!orb.NoOwner)
+				HEADS[orb.owner].tail.Remove(OrbId);
 
-				orb.NewOwner(this.KeyCode);
-				tail.Add(OrbId);
-				}
+			orb.NewOwner(this.KeyCode);
+			tail.Add(OrbId);
 		}
 
 		public void Revive() {
