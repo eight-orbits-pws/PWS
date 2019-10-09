@@ -31,21 +31,21 @@ namespace Eight_Orbits {
 			// output
 			// 
 			this.output.AutoSize = true;
-			this.output.Location = new Point(0, 0);
+			this.output.Font = new System.Drawing.Font("Consolas", 9F);
+			this.output.ForeColor = System.Drawing.Color.WhiteSmoke;
+			this.output.Location = new System.Drawing.Point(0, 0);
 			this.output.Name = "output";
-			this.output.Font = new Font(new FontFamily("Consolas"), 9);
-			this.output.ForeColor = Color.WhiteSmoke;
-			this.output.Size = new Size(0, 4);
+			this.output.Size = new System.Drawing.Size(0, 14);
 			this.output.TabIndex = 0;
 			// 
 			// Window
 			// 
-			this.AutoScaleDimensions = new SizeF(6F, 13F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new Size(512, 312);
-			this.BackColor = Color.Black;
+			this.BackColor = System.Drawing.Color.Black;
+			this.ClientSize = new System.Drawing.Size(512, 312);
 			this.Controls.Add(this.output);
-			this.Name = "8 Orbits";
+			this.Name = "Window";
 			this.Text = "8 Orbits";
 			this.ResumeLayout(false);
 			this.PerformLayout();

@@ -54,7 +54,7 @@ namespace Eight_Orbits {
 				DoubleBuffered = true;
 				Cursor.Hide();
 				
-				Paint += DrawPaint;
+				Paint += new PaintEventHandler(DrawPaint);
 				OutputTxt.Visible = false;
 			} else {
 				AutoScroll = true;
@@ -64,10 +64,10 @@ namespace Eight_Orbits {
 				SZR = 1;
 				
 			}
-			MouseMove += this.Window_MouseMove;
-			Resize += on_resize;
-			KeyDown += window_keydown;
-			KeyUp += window_keyup;
+			MouseMove += new MouseEventHandler(this.Window_MouseMove);
+			Resize += new EventHandler(on_resize);
+			KeyDown += new KeyEventHandler(window_keydown);
+			KeyUp += new KeyEventHandler(window_keyup);
 		}
 
 		private void Window_MouseMove(object sender, MouseEventArgs e) {
@@ -103,7 +103,7 @@ namespace Eight_Orbits {
 		}
 
 		private void async_update_math() {
-			while (ApplicationRunning && !SyncUpdate) {
+			while (ApplicationRunning && !SyncUpdate && running) {
 				Program.Update();
 			}
 
@@ -256,7 +256,7 @@ namespace Eight_Orbits {
 					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) { // (re)start game
 						if (e.Shift) Map.ResumeGame();
 						else Map.StartGame();
-						ForcePaused = false;
+						//ForcePaused = false;
 						Ingame = true;
 						state = States.INGAME;
 					} else if (e.KeyCode == Keys.Escape) { // clear all keys
@@ -287,7 +287,8 @@ namespace Eight_Orbits {
 						state = States.PAUSED;
                         if (SyncUpdate)
 					        Program.UpdateThread.Pause();
-						else ForcePaused = true;
+						//else ForcePaused = true;
+						VisualThread.Pause();
 						running = false;
 					} else if (ActiveKeys.Contains(ekey)) { //default action
 						HEADS[ekey].Action();
@@ -297,8 +298,10 @@ namespace Eight_Orbits {
 						state = States.INGAME;
 						Ingame = true;
 						if (SyncUpdate) UpdateThread.UnPause();
-						ForcePaused = false;
-						running = true;
+						else StartAsyncUpdate();
+						VisualThread.UnPause();
+						//ForcePaused = false;
+						
 					} else if (e.KeyCode == Keys.Enter) { // let players join
 						HEADSOnPause = new Dictionary<Keys, Head>(HEADS);
 						Map.EndGame();
@@ -307,7 +310,9 @@ namespace Eight_Orbits {
 						state = States.NEWGAME;
 						lock (ActiveLock) foreach (Keys key in ActiveKeys) HEADS[key].v = IVector.Up;
 						Ingame = false;
+						VisualThread.UnPause();
 						if (SyncUpdate) UpdateThread.UnPause();
+						else StartAsyncUpdate();
 					}
 					break;
 			}

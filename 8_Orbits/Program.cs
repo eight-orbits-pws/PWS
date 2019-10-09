@@ -133,7 +133,6 @@ namespace Eight_Orbits {
 			do {
 				lock (updatinglocker) {
 					frame++;
-					SpinWait.SpinUntil(() => !(ForcePaused && ApplicationRunning));
 					if (SlowMo) {
 						if (SpeedMo && frame % 3 != 0)
 							return;
@@ -144,9 +143,6 @@ namespace Eight_Orbits {
 					OnUpdate?.Invoke();
 
 					if (!SyncUpdate) UpdateNeural();
-					/// update NNWs
-					//Neural_Network.Neat.GO = true;
-					//SpinWait.SpinUntil(() => !Neural_Network.Neat.GO || !ApplicationRunning);
 					
 
 					if (state == States.INGAME) {
