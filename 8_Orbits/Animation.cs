@@ -231,7 +231,6 @@ namespace Eight_Orbits {
 			Program.OnUpdateAnimation += update = new Action(Update);
 			Program.window.DrawAnimation += draw = new PaintEvent(Draw);
 			m.OnEnd += new Action(Remove);
-			x = new Animatable(100);
 		}
 
 		public Coin(Animatable x, float offset, float y, int points, Color color) : this(new IPoint((float) x + offset, y), points, color) {
@@ -244,7 +243,7 @@ namespace Eight_Orbits {
 		}
 
 		public void Update() {
-			pos.X = (float) x + offset;
+			if (x != null) pos.X = (float) x + offset;
 		
 			pos.Y += m;
 			shadow.Y += m;
