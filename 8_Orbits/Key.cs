@@ -33,9 +33,9 @@ namespace Eight_Orbits {
 		}
 
 		//public byte index = 0;
-		private Animatable x = new Animatable(W, 48);
-		private readonly Animatable w = new Animatable(0, 48);
-		private readonly Animatable a = new Animatable(0, 10);
+		private readonly Animatable x = new Animatable(W, 48, true);
+		private readonly Animatable w = new Animatable(0, 48, true);
+		private readonly Animatable a = new Animatable(0, 10, true);
 		public byte points = 0;
 		public Keys owner = Keys.None;
 		readonly string DKey;
@@ -56,7 +56,12 @@ namespace Eight_Orbits {
 			window.DrawKeys += Draw;
 		}
 
-		public void Remove() => window.DrawKeys -= Draw;
+		public void Remove() {
+			window.DrawKeys -= Draw;
+			x.Remove();
+			w.Remove();
+			a.Remove();
+		}
 
 		public void Press() {
 			if (dead) return;
@@ -83,7 +88,7 @@ namespace Eight_Orbits {
 			a.Set(1);
 		}
 
-		public void Add(int pts) => new Coin(ref this.x, this.w / 2, W / 2 + HEIGHT * 3 / 4, pts, Color.White);
+		public void Add(int pts) => _=new Coin(this.x, this.w / 2, W / 2 + HEIGHT * 3 / 4, pts, Color.White);
 
 		public void Update() => this.x.Set(get_index(owner) * WIDTH);
 

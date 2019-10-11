@@ -13,8 +13,8 @@ namespace Eight_Orbits {
 		public static volatile object RecordsLock = new { };
 		private static Stat mvp = new Stat();
 
-		private static readonly Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN);
-		private static readonly Animatable Disappear = new Animatable(1, 0, 36, AnimationTypes.COS);
+		private static readonly Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN, true);
+		private static readonly Animatable Disappear = new Animatable(1, 0, 36, AnimationTypes.COS, true);
 		private static volatile bool Displaying = true;
 		private static string DisplayText = "Prepare!";
 		private static readonly Color color = Color.FromArgb(96, 32, 32, 32);

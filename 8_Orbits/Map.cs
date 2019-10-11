@@ -17,7 +17,7 @@ namespace Eight_Orbits {
 		readonly int EndGameTime = 300;
 
 		public byte RoundsPassed = 0;
-		public BlastSpawn blastSpawn = BlastSpawn.ONE;// (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
+		public BlastSpawn blastSpawn = (Settings.Default.BlastSpawn == "rare"? BlastSpawn.RARE : BlastSpawn.ONE);
 		
 		public HashSet<Orbit> Orbits { get; protected set; } = new HashSet<Orbit>();
 		IPoint tempCenter;
@@ -26,27 +26,25 @@ namespace Eight_Orbits {
 		public Phases phase = Phases.NONE;
 		public int MaxPoints = 0;
 		
-		public virtual event Action OnClear;
+		private event Action on_clear = nothing;
+		private event Action on_clear_remove = nothing;
+		public virtual event Action OnClear { add { lock (this) on_clear += value; } remove { lock (this) on_clear -= value; } }
 		public event Action OnClearRemove;
 		protected void start_round() => OnStartRound?.Invoke();
 		public event Action OnStartRound;
 		public void revive() => OnRevive?.Invoke();
 		public event Action OnRevive;
-		//public event Action OnEndRound;
 		protected void start_game() => OnStartGame?.Invoke();
 		public event Action OnStartGame;
 		public event Action OnEndGame;
 
 		public World() {
             OnClear += window.Clear;
-			//MVP.Winner += EndGame;
 			this.Orbits = Maps.Standard;
 			OnUpdate += Update;
 
 			if (!AnimationsEnabled) EndRoundTime = EndGameTime = 10;
 		}
-
-		public Action[] get_onclear() => (Action[]) OnClear?.GetInvocationList();
 		
 		public virtual void SetMap() {
 			HashSet<Orbit> temp;
@@ -54,6 +52,7 @@ namespace Eight_Orbits {
 				temp = Maps.Random;
 			} while (this.Orbits == temp && RoundsPassed > 0);
 
+			foreach (Orbit orbit in this.Orbits) orbit.Remove();
 			this.Orbits = temp;
 		}
 
@@ -86,10 +85,10 @@ namespace Eight_Orbits {
 		public virtual void Draw(Graphics g) {
 			g.DrawString(MaxPoints.ToString(), new Font(FONT, 8, FontStyle.Bold), Brushes.White, 6, 6);
 			g.FillPolygon(new SolidBrush(window.MapColor), new PointF[8]{
-				new PointF(C, 0f), new PointF(0, C),
-				new PointF(0, W/2-C), new PointF(C, W/2),
-				new PointF(W-C, W/2), new PointF(W, W/2-C),
-				new PointF(W, C), new PointF(W-C, 0)
+				new PointF(C, 0f),		new PointF(0, C),
+				new PointF(0, W/2-C),	new PointF(C, W/2),
+				new PointF(W-C, W/2),	new PointF(W, W/2-C),
+				new PointF(W, C),		new PointF(W-C, 0)
 			});
 
 			foreach (Orbit orbit in Orbits)
@@ -153,9 +152,8 @@ namespace Eight_Orbits {
 		public void Clear() {
 			lock (window.draw_lock) {
 				OnClearRemove?.Invoke();
-				OnClearRemove = null;
-
-				OnClear?.Invoke();
+				OnClearRemove = new Action(() => { });
+				on_clear();
 				
 				lock (Orb.OrbLock) Orb.All.Clear();
 				lock (Blast.BlastLock) Blast.All.Clear();

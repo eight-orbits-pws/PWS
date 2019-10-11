@@ -330,10 +330,8 @@ namespace Eight_Orbits {
 			g.TextRenderingHint = TextRenderingHint.AntiAlias;
 
 			g.ScaleTransform(scalar, scalar);
-				//lock (draw_lock) {
 
 			Map?.Draw(g);
-			//if (draw_log != null) g.DrawImageUnscaled(draw_log, W/2, H/2);
 
 			DrawWhite?.Invoke(g);
 			Blast.DrawAll(g);
@@ -348,9 +346,6 @@ namespace Eight_Orbits {
 				Map.DrawCrown(g);
 
 			MVP.Draw(g);
-
-			//draw_log = new BufferedGraphics(). Bitmap.FromHbitmap(g.GetHdc());
-			//draw_log.MakeTransparent(MapColor);
 		}
 
 		public void Clear() {

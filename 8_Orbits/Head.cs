@@ -17,7 +17,6 @@ namespace Eight_Orbits.Entities {
 		public string DisplayKey;
 		public byte Points = 0;
 		public byte Kills = 0;
-		public int debug_kills = 0;
         public readonly HashSet<Keys> killed = new HashSet<Keys>();
 		public byte index = 0;
 
@@ -25,10 +24,11 @@ namespace Eight_Orbits.Entities {
 		public readonly Tail tail = new Tail();
 
 		private float z = 0;
-		private sbyte dashFrame = -1;
-		private bool DashHideText = false;
+		private volatile sbyte dashFrame = -1;
+		private volatile bool DashHideText = false;
+		private static readonly int dash_length = 43;
 
-		private bool bot = false;
+		private readonly bool bot = false;
 
 		public bool Died { get; private set; } = false;
 
@@ -37,17 +37,22 @@ namespace Eight_Orbits.Entities {
 		public Activities act = Activities.DEFAULT;
 		public readonly IKey key;
 
+		private readonly PaintEvent draw_event;
+		private readonly Action e_update;
+
 		private Head() {
 			index = (byte) ActiveKeys.Count;
 			r = HeadR * SZR;
 			v = IVector.Up;
 			pos = Map.generateSpawn(HeadR);
 
+			draw_event = new PaintEvent(Draw);
+
 			Map.OnStartGame += Reset;
 			Map.OnRevive += Revive;
 			Map.OnClear += clear;
-			OnUpdate += Update;
-			if (AnimationsEnabled) window.DrawHead += Draw;
+			OnUpdate += e_update = new Action(Update);
+			if (AnimationsEnabled) window.DrawHead += draw_event;
 		}
 
 		public Head(Neat nnw) : this() {
@@ -77,7 +82,7 @@ namespace Eight_Orbits.Entities {
 			DisplayKey = getKeyString(KeyCode);
 			window.writeln(DisplayKey);
 			
-			color = generate_color();
+			color = GenerateColor();
 
 			this.key = new IKey(KeyCode, DisplayKey, color);
 		}
@@ -88,7 +93,7 @@ namespace Eight_Orbits.Entities {
 			DisplayKey = head.DisplayKey;
 			window.writeln(DisplayKey);
 			
-			color = generate_color();
+			color = GenerateColor();
 
 			this.key = new IKey(KeyCode, DisplayKey, color);
 			index = (byte) ActiveKeys.Count;
@@ -102,8 +107,8 @@ namespace Eight_Orbits.Entities {
 			Map.OnStartGame += Reset;
 			Map.OnRevive += Revive;
 			Map.OnClear += clear;
-			OnUpdate += Update;
-			if (AnimationsEnabled) window.DrawHead += Draw;
+			OnUpdate += e_update = new Action(Update);
+			if (AnimationsEnabled) window.DrawHead += draw_event = new PaintEvent(Draw);
 		}
 
 		~Head() {
@@ -123,8 +128,8 @@ namespace Eight_Orbits.Entities {
 			key.Remove();
 			Map.OnStartGame -= Reset;
 			Map.OnStartRound -= Revive;
-			OnUpdate -= Update;
-			if (AnimationsEnabled) window.DrawHead -= Draw;
+			OnUpdate -= e_update;
+			if (AnimationsEnabled) window.DrawHead -= draw_event;
 
 			Map.SetMaxPoints();
 			try {
@@ -138,8 +143,8 @@ namespace Eight_Orbits.Entities {
 			NewColor();
 
 			if (Died) {
-				OnUpdate += Update;
-				window.DrawHead += Draw;
+				OnUpdate += e_update;
+				window.DrawHead += draw_event;
 				Died = false;
 			} else {
 				z = 0;
@@ -153,12 +158,11 @@ namespace Eight_Orbits.Entities {
 
 			switch (act) {
 				case Activities.DEFAULT:
-					if (dashFrame < 0) return;
 					//dash or orbit
-					if (Map.InOrbit(pos)) {
+					if (Map.InOrbit(pos)) { // dash cooldown deas not apply
 						act = Activities.ORBITING;
 						orbitCenter = Map.getOrbitCenter();
-					} else {
+					} else if (dashFrame == 0) { // dash cooldown
 						act = Activities.DASHING;
 						tail.Shoot();
 					} break;
@@ -176,15 +180,9 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Eat(byte OrbId) {
-			Orb orb;
-			//try {
-			orb = Orb.All[OrbId];
-			//} catch (ArgumentOutOfRangeException) {
-			//	return;
-			//}
+			Orb orb = Orb.All[OrbId];
 
-			if (!orb.NoOwner)
-				HEADS[orb.owner].tail.Remove(OrbId);
+			if (!orb.NoOwner) HEADS[orb.owner].tail.Remove(OrbId);
 
 			orb.NewOwner(this.KeyCode);
 			tail.Add(OrbId);
@@ -194,31 +192,29 @@ namespace Eight_Orbits.Entities {
 			this.act = Activities.STARTROUND;
 			this.pos = IPoint.Center;
 			this.v.A = 2 * Math.PI / ActiveKeys.Count * ActiveKeys.IndexOf(KeyCode) + StartRotation;
-			Kills = 0;
-			this.debug_kills = 0;
+			this.Kills = 0;
 			this.killed.Clear();
-			key.Revive();
+			this.key.Revive();
 		}
 
 		public void Reset() {
-			this.debug_kills = 0;
 			this.Points = 0;
 			this.Kills = 0;
-			key.points = Points;
+			this.key.points = Points;
 		}
 
 		public event Action OnDie;
 		public event Action OnReward;
-		private volatile object lock_die = new { };
+		private static readonly object lock_die = new { };
 
 		public void Die() {
 			lock (lock_die) {
 				if (Died) return;
 				Died = true;
 			}
-			OnUpdate -= Update;
+			OnUpdate -= e_update;
 			if (AnimationsEnabled)
-				window.DrawHead -= Draw;
+				window.DrawHead -= draw_event;
 
 			if (Tick < 60 + Map.StartRoundTime)
 				MVP.Add(MVPTypes.EARLY_KILL, DisplayKey);
@@ -233,9 +229,9 @@ namespace Eight_Orbits.Entities {
 			DashHideText = false;
 
 			if (AnimationsEnabled && ActiveKeys.Count <= 12 && !(Map is BotArena))
-				new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, this.color), 0);
+				_ = new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, this.color), 0);
 			if (AnimationsEnabled)
-				new Animation(pos, 12, 0, 0, HeadR, HeadR, this.color, 32, AnimationTypes.CUBED);
+				_ = new Animation(pos, 12, 0, 0, HeadR, HeadR, this.color, 32, AnimationTypes.CUBED);
 			else
 				window.writeln(DisplayKey + " died: " + Points + " pts");
 
@@ -246,7 +242,7 @@ namespace Eight_Orbits.Entities {
             if (OnDie != null) Parallel.Invoke(OnDie);
         }
 
-		private readonly object lock_reward = new {};
+		private static readonly object lock_reward = new {};
 		public byte Reward(byte OrbId, Keys victim) {
 			byte temp;
 			lock (MVP.RecordsLock) {
@@ -290,19 +286,18 @@ namespace Eight_Orbits.Entities {
 					break;
 
 				case Activities.DASHING:
-					int w = 43;
-					v *= 2d / (Math.Pow(2d * dashFrame / w - 1d, 2d) + 1d);
+					v *= 2d / (Math.Pow(2d * dashFrame / dash_length - 1d, 2d) + 1d); // some complicated resistance formula
 
 					pos += v;
 					
-					z = HeadR - (float) Math.Cos(dashFrame / (double) w * Math.PI * 2) * HeadR;
+					z = HeadR - (float) Math.Cos(dashFrame / (double) dash_length * Math.PI * 2) * HeadR;
 					
-					if (dashFrame++ == w) {
+					if (dashFrame++ == dash_length) {
 						act = Activities.DEFAULT;
 						dashFrame = -1;
-					} else if (dashFrame == w/4) {
+					} else if (dashFrame == dash_length/4) {
 						DashHideText = true;
-					} else if (dashFrame == w*3/4) {
+					} else if (dashFrame == dash_length*3/4) {
 						DashHideText = false;
 					}
 					break;
@@ -395,7 +390,7 @@ namespace Eight_Orbits.Entities {
 			return c;
 		}
 
-		public static Color generate_color() {
+		public static Color GenerateColor() {
 			int a, r, g, b;
 			double x = R.NextDouble();
 
@@ -407,11 +402,11 @@ namespace Eight_Orbits.Entities {
 			return Color.FromArgb(a, r, g, b);
 		}
 
-		public void NewColor(bool red) => this.color = red? Color.Red : generate_color();
+		public void NewColor(bool red) => this.color = red? Color.Red : GenerateColor();
 
 		public void NewColor() {
 			if (Gamemode == Gamemodes.CHAOS_RAINBOW)
-				this.color = generate_color();
+				this.color = GenerateColor();
 		}
 
 		public override bool Equals(object obj) => this.GetHashCode() == obj.GetHashCode();

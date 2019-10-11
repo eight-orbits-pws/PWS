@@ -2,10 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Eight_Orbits {
 	public class Animatable {
@@ -15,40 +11,63 @@ namespace Eight_Orbits {
 
 		private int startTick;
 		private readonly int duration;
+		private readonly bool keep;
 		private readonly AnimationTypes type;
 
-		public Animatable(int duration)						: this(0, 0, duration, AnimationTypes.LINEAR) {}
-		public Animatable(float f, int duration)			: this(f, f, duration, AnimationTypes.LINEAR) {}
-		public Animatable(float b, float e, int duration)	: this(b, e, duration, AnimationTypes.LINEAR) {}
+		public event Action OnEnd;
 
-		public Animatable(float b, float e, int duration, AnimationTypes type) {
+		private bool ended;
+
+		public Animatable(int duration)						: this(0, 0, duration, AnimationTypes.LINEAR, false) {}
+		public Animatable(float f, int duration, bool keep)	: this(f, f, duration, AnimationTypes.LINEAR, keep) {}
+		public Animatable(float b, float e, int duration)	: this(b, e, duration, AnimationTypes.LINEAR, false) {}
+		public Animatable(float b, float e, int duration, AnimationTypes type)	: this(b, e, duration, type, false) {}
+		public Animatable(float b, float e, int duration, AnimationTypes type, bool keep) {
+			ended = false;
+			OnEnd = null;
+
 			this.b = b;
 			this.c = b;
 			this.e = e;
 			this.startTick = Program.Tick;
 			this.duration = duration;
+			this.keep = keep;
 			this.type = type;
 
 			this.startTick = Program.Tick;
-			Program.OnUpdate += update;
+
+			if (keep) Program.OnUpdate += update;
+			else Program.OnUpdateAnimation += update;
+		}
+
+		public Animatable(Animatable parent) {
+			ended = false;
+			OnEnd = null;
+
+			this.b = parent.b;
+			this.c = parent.c;
+			this.e = parent.e;
+			this.startTick = parent.startTick;
+			this.duration = parent.duration;
+			this.type = parent.type;
+			
+			this.keep = false;
+			Program.OnUpdateAnimation += update;
 		}
 
 		public void Remove() {
 			this.OnEnd = null;
-			Program.OnUpdate -= update;
+			if (keep) Program.OnUpdate -= update;
+			else Program.OnUpdateAnimation -= update;
 		}
 
 		public void Set(float n) {
 			if (n == this.e) return;
-			ended = false;
+			if (Program.SyncUpdate) ended = false;
 			this.startTick = Program.Tick;
 			this.b = Program.SyncUpdate? this.c : n;
 			this.e = n;
 		}
-
-		public event Action OnEnd;
-
-		private bool ended = false;
 		public bool Ended => !Program.SyncUpdate || (Program.Tick - startTick >= duration && !ended);
 
 		public void Reset() {
@@ -112,7 +131,7 @@ namespace Eight_Orbits {
 	}
 
 	public class Animation : Visual {
-		public static HashSet<Animation> All = new HashSet<Animation>();
+		//public static HashSet<Animation> All = new HashSet<Animation>();
 
 		private PointF pos;
 		private readonly int duration;
@@ -123,12 +142,15 @@ namespace Eight_Orbits {
 
 		private readonly int starttick = 0;
 
+		private readonly PaintEvent draw;
+		private readonly Action update;
+
 		public Animation() {
 			if (!Program.SyncUpdate) return;
 			starttick = Program.Tick;
-			Program.OnUpdate += Update;
-			Program.window.DrawHead += Draw;
-			Program.Map.OnClearRemove += End;
+			Program.OnUpdateAnimation += update = new Action(Update);
+			Program.window.DrawHead += draw = new PaintEvent(Draw);
+			Program.Map.OnClearRemove += new Action(End);
 		}
 
 		public Animation(IPoint start, int ticks, float fromR, float toR, float fromD, float toD, Color fromColor, int toAlpha) : this() {
@@ -172,8 +194,11 @@ namespace Eight_Orbits {
 		}
 
 		public void End() {
-			Program.OnUpdate -= Update;
-			Program.window.DrawHead -= Draw;
+			Program.OnUpdateAnimation -= update;
+			Program.window.DrawHead -= draw;
+			R.Remove();
+			D.Remove();
+			color.Remove();
 		}
 	}
 
@@ -188,31 +213,39 @@ namespace Eight_Orbits {
 		readonly string text;
 		readonly Font font;
 
+		private readonly PaintEvent draw;
+		private readonly Action update;
+		//private readonly Action remove;
+
 		public Coin(IPoint pos, int points, Color color) {
 			if (points == 0 || !Program.SyncUpdate) return;
 			this.font = new Font(Program.FONT, 16 * Program.Scale, FontStyle.Bold);
 			this.text = "+" + points;
 			SizeF sz = Program.window.CreateGraphics().MeasureString(text, font);
-			this.offset = -sz.Width/2;
+			this.offset = -sz.Width/2f;
 			this.pos = new PointF((float)pos.X - sz.Width/2, (float)pos.Y - sz.Height/2);
 			this.shadow = new PointF((float) pos.X - sz.Width/2 + 1f, (float) pos.Y - sz.Height/2 + 1f);
 			this.m = new Animatable(-.72f, 0, 100, AnimationTypes.SIN);
 			this.c = new SolidBrush(color);
 
-			Program.OnUpdate += Update;
-			Program.window.DrawAnimation += Draw;
-			m.OnEnd += Remove;
+			Program.OnUpdateAnimation += update = new Action(Update);
+			Program.window.DrawAnimation += draw = new PaintEvent(Draw);
+			m.OnEnd += new Action(Remove);
+			x = new Animatable(100);
 		}
 
-		public Coin(ref Animatable x, float offset, float y, int points, Color color) : this(new IPoint((float) x + offset, y), points, color) {
-			this.x = x;
+		public Coin(Animatable x, float offset, float y, int points, Color color) : this(new IPoint((float) x + offset, y), points, color) {
+			this.x = new Animatable(x);
 			this.offset += offset;
 		}
 
+		~Coin() {
+			this.Remove();
+		}
+
 		public void Update() {
-			if (x != null) {
-				pos.X = (float) x + offset;
-			}
+			pos.X = (float) x + offset;
+		
 			pos.Y += m;
 			shadow.Y += m;
 		}
@@ -223,16 +256,17 @@ namespace Eight_Orbits {
 		}
 
 		public void Remove() {
-			Program.window.OnUpdateAnimation -= Update;
-			Program.window.DrawAnimation -= Draw;
-			m.OnEnd -= Remove;
+			Program.OnUpdateAnimation -= update;
+			Program.window.DrawAnimation -= draw;
+			m?.Remove();
+			x?.Remove();
 		}
 	}
 	
 	public class AnimatableColor {
 		public Color b;
 		public Color e;
-		private Animatable p;
+		private readonly Animatable p;
 
 		public AnimatableColor(Color b, Color e, int duration) {
 			this.b = b;
@@ -244,6 +278,10 @@ namespace Eight_Orbits {
 			this.b = b;
 			this.e = e;
 			this.p = new Animatable(0, 1, duration, type);
+		}
+
+		public void Remove() {
+			p.Remove();
 		}
 
 		public static explicit operator Color (AnimatableColor value) {

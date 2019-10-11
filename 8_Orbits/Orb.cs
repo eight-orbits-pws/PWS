@@ -26,7 +26,7 @@ namespace Eight_Orbits.Entities {
 		public bool eaten = false;
 		public bool info = false;
 		public bool isBullet = false;
-		private readonly Animatable contrast_color = new Animatable(0, 5);
+		private readonly Animatable contrast_color = new Animatable(0, 5, false);
 
 		public readonly byte ID;
 
@@ -53,6 +53,7 @@ namespace Eight_Orbits.Entities {
 			window.DrawTail -= Draw;
 			window.DrawBullet -= Draw;
 			window.UpdateColors -= update_color;
+			contrast_color.Remove();
 			// removing out of All happens in Map.Clear()
 		}
 
@@ -153,7 +154,7 @@ namespace Eight_Orbits.Entities {
 			Brush clr;
 			if (state == OrbStates.TRAVELLING) {
 				clr = Brushes.White;
-				if (owner != Keys.None && HEADS[owner].Died) NewOwner();
+				if (owner != Keys.None && (!HEADS.ContainsKey(owner) || HEADS[owner].Died)) NewOwner();
 			} else if (state == OrbStates.BULLET) {
 				double c = Math.Pow(Math.Sin(bulletTime / 8), 2) * 2 / 3;
 				clr = new SolidBrush(Color.FromArgb((int)(color.R + (255 - color.R) * c), (int)(color.G + (255 - color.G) * c), (int)(color.B + (255 - color.B) * c)));

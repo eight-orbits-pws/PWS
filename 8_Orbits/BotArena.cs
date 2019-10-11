@@ -49,16 +49,16 @@ namespace Eight_Orbits
                 else
                     SetMaxPoints();
 
-                Program.HEADS[bot.Key].color = Entities.Head.generate_color();
+                Program.HEADS[bot.Key].color = Entities.Head.GenerateColor();
             }
 
 			if (type == Type.CONTINUEOUS) {
 				/// in plaats van de orbs laten verdwijnen:
 				MaxOrbs = 6;
 				
-				/// kan ook zo: foreach (Head head in Program.HEADS.Values)
-				foreach (KeyValuePair<Keys, Entities.Head> head in Program.HEADS)
-					head.Value.OnDie += OnDie;
+				/// kan ook zo: 
+				foreach (Entities.Head head in Program.HEADS.Values)
+					head.OnDie += OnDie;
 			}
         }
 
@@ -145,22 +145,25 @@ namespace Eight_Orbits
                 case Type.MAX_POINTS:
                     bots.Sort((a, b) => Program.HEADS[b.Key].Points.CompareTo(Program.HEADS[a.Key].Points));
 
-                    int mark = (bots.Count + 1) / 2;
-                    for (int i = mark; i < bots.Count; i++)
-                        bots[i].FromParent(bots[i - mark]);
+                    //int mark = (bots.Count + 1) / 2;
+                    //for (int i = mark; i < bots.Count; i++)
+                    //    bots[i].FromParent(bots[i - mark]);
 
+					for (int i = 2; i < bots.Count; i++)
+                        if (Program.R.NextDouble() > (double) Program.HEADS[bots[i].Key].Points / MaxPoints) bots[i].FromParent(bots[i % 2]); // 0 or 1
                     break;
             }
         }
 
         private void PrintBots()
         {
+			return;
             foreach (Neat bot in bots)
             {
-                //Console.WriteLine("---------------------------");
-                //Console.WriteLine(bot.Key);
-                //foreach (Gene gene in bot.Genes)
-                    //Console.WriteLine(gene);
+                Console.WriteLine("---------------------------");
+                Console.WriteLine(bot.Key);
+                foreach (Gene gene in bot.Genes)
+                    Console.WriteLine(gene);
             }
         }
 

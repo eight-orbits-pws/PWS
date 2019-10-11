@@ -23,13 +23,13 @@ namespace Eight_Orbits {
 				else window.StartAsyncUpdate();
 
 				if (SyncUpdate) NeuralThread = new MyTimer(1000d / 120d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
-				//Neural_Network.Neat.Main();
 				// else update in UpdateThread
 
 				AssistThread = new AssistKill();
+				Map.OnClear += new Action(() => { OnUpdateAnimation = null; });
 
 				if (AnimationsEnabled) {
-					if (SyncUpdate) VisualThread = new MyTimer(1000d / 120d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
+					if (SyncUpdate) VisualThread = new MyTimer(1000d / 240d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
 					else {
 						System.Timers.Timer timer = new System.Timers.Timer(1000d / 60d);
 						timer.Elapsed += window.Update_Visual;
@@ -108,6 +108,7 @@ namespace Eight_Orbits {
 		public static readonly double sqrt2 = Math.Sqrt(2D);
 		public static readonly double PHI = (Math.Sqrt(5D) + 1D) / 2D;
 		public static readonly FontFamily FONT = FontFamily.GenericSansSerif;
+		public static readonly Action nothing = new Action(() => { });
 		public static double StartRotation = 1d;
 
 		public static Keys Leader = Keys.None;
@@ -124,6 +125,7 @@ namespace Eight_Orbits {
 		public static int Tick => (int) tick;
 
 		public static  event Action OnUpdate;
+		public static  event Action OnUpdateAnimation;
 		public static event Action OnUpdateNNW;
 
         private static HashSet<Keys> check = new HashSet<Keys>();
@@ -141,6 +143,7 @@ namespace Eight_Orbits {
 					}
 					tick++;
 					OnUpdate?.Invoke();
+					OnUpdateAnimation?.Invoke();
 
 					if (!SyncUpdate) UpdateNeural();
 					
@@ -190,7 +193,6 @@ namespace Eight_Orbits {
 						}
 
 						AssistThread.Invoke();
-						//if (Map.phase == Phases.STARTROUND) return;
 						check.Clear();
 					}
 				}
