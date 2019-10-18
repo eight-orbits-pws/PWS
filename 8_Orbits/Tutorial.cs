@@ -119,7 +119,7 @@ namespace Eight_Orbits {
 		}
 
 		public override void EndRound() {
-			MVP.SetText($"Stage {stage-1}");
+			MVP.SetText($"Stage {stage-1}/6");
 			MVP.Flash();
 			phase = Phases.ENDROUND;
 			if (ApplicationRunning) new Thread(() => {
@@ -251,11 +251,8 @@ namespace Eight_Orbits {
 			player.pos = new IPoint(W*.6d, W*.19d);
 			player.v = speed * IVector.Left;
 			
-			
-			bot.act = Activities.DEAD;
-			bot1.act = Activities.DEAD;
-			bot.pos = bot1.pos = new IPoint(0, -HeadR*2);
-			bot.v = bot1.v = IVector.Right;
+			bot.INACTIVE = bot1.INACTIVE = true;
+			bot.pos = bot1.pos = new IPoint(0, -HeadR * 2);
 			
 			Blast blast = new Blast();
 			blast.pos = new IPoint(W*.8f, W*.19d);
@@ -288,17 +285,18 @@ namespace Eight_Orbits {
 			// use Maps.STANDARD from now on
 			text = "When you're inside an orbit,\npress to go in orbit\npress again to go straight again";
 			point = new PointF(.367f * W, .4f * W);
-			Orbits = Standard;
+
+			SyncUpdate = false;
+			if (Orbits == Empty) Orbits = Standard;
+			SyncUpdate = true;
 
 			Head player = HEADS[key_player];
 			player.act = Activities.DEFAULT;
 			player.pos = new IPoint(W*.45d, W*.45d);
 			player.v = IVector.Up;
 			
-			bot.act = Activities.DEAD;
-			bot1.act = Activities.DEAD;
+			bot.INACTIVE = bot1.INACTIVE = true;
 			bot.pos = bot1.pos = new IPoint(0, -HeadR * 2);
-			bot.v = bot1.v = IVector.Right;
 
 			Blast blast = new Blast();
 			blast.pos = new IPoint(W*.15d, W*.18d);
@@ -331,14 +329,13 @@ namespace Eight_Orbits {
 
 			lock (Orb.OrbLock) foreach (IPoint p in ps) new Orb().pos = p;
 
+			bot.INACTIVE = false;
 			bot.act = Activities.DEFAULT;
 			bot.INVINCIBLE = true;
 			bot.pos = new IPoint(W*.633f, W/16);
 			bot.v = IVector.Down;
 
-			bot1.act = Activities.DEAD;
 			bot1.pos = new IPoint(0, -HeadR * 2);
-			bot1.v = IVector.Right;
 
 			lock (Orb.OrbLock) for (int i = 1; i < 12; i++)
 				new Orb(true).pos = new IPoint(W*.633d, W/2*i/13);
@@ -346,6 +343,7 @@ namespace Eight_Orbits {
 
 		public void Stage6() {
 			// introduce shooting - pick up a ball, force the dash, shoot the target - no orbits this time
+			if (Orbits == Standard) foreach (Orbit orbit in Orbits) orbit.Remove();
 			Orbits = Empty;
 			Orbits.Add(new Orbit(.8f, .38f, .05f));
 			text = "And finally:\nShoot to kill\nyour opponents";
@@ -364,6 +362,7 @@ namespace Eight_Orbits {
 			lock (Orb.OrbLock) for (int i = 1; i < 12; i++) 
 				new Orb(true).pos = new IPoint(W*1/4, W/2*i/13);
 
+			bot1.INACTIVE = false;
 			bot1.color = Color.Green;
 			bot1.DisplayKey = "×";
 			bot1.pos = new IPoint(.8d*W, .215d*W);

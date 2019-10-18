@@ -24,15 +24,19 @@ namespace Eight_Orbits.Entities {
 		public readonly Tail tail = new Tail();
 
 		private float z = 0;
-		private volatile sbyte dashFrame = -1;
+		private volatile sbyte dash_frame = -1;
+		public sbyte DashFrame => dash_frame;
 		private volatile bool DashHideText = false;
 		private static readonly int dash_length = 43;
 
 		private readonly bool bot = false;
-
-		public bool Died { get; private set; } = false;
+		
+		public bool Dashing => this.act == Activities.DASHING;
+		public bool Died => this.act == Activities.DEAD;
+		public bool Orbiting => this.act == Activities.ORBITING;
 
 		public bool INVINCIBLE = false;
+		public bool INACTIVE = false;
 
 		public Activities act = Activities.DEFAULT;
 		public readonly IKey key;
@@ -56,8 +60,8 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public Head(Neat nnw) : this() {
-			if (bots < 10) KeyCode = (Keys) new KeysConverter().ConvertFromString("D" + bots);
-			else KeyCode = (Keys) new KeysConverter().ConvertFromString("F" + (bots + 3));
+			//if (bots < 10) KeyCode = (Keys) new KeysConverter().ConvertFromString("D" + bots);
+			KeyCode = (Keys) new KeysConverter().ConvertFromString("F" + (bots+1));
 
 			if (bots < 10) DisplayKey = "B" + bots;
 			else DisplayKey = "B" + (char) (bots+55);
@@ -145,10 +149,9 @@ namespace Eight_Orbits.Entities {
 			if (Died) {
 				OnUpdate += e_update;
 				window.DrawHead += draw_event;
-				Died = false;
 			} else {
 				z = 0;
-				dashFrame = -1;
+				dash_frame = -1;
 				DashHideText = false;
 			}
 		}
@@ -156,33 +159,36 @@ namespace Eight_Orbits.Entities {
 		public void Action() {
 			key.Press();
 
-			switch (act) {
-				case Activities.DEFAULT:
-					//dash or orbit
-					if (Map.InOrbit(pos)) { // dash cooldown deas not apply
-						act = Activities.ORBITING;
-						orbitCenter = Map.getOrbitCenter();
-					} else if (dashFrame == 0) { // dash cooldown
-						act = Activities.DASHING;
-						tail.Shoot();
-					} break;
+			lock (updatinglocker) {
+				switch (act) {
+					case Activities.DEFAULT:
+						//dash or orbit
+						if (Map.InOrbit(pos)) { // dash cooldown deas not apply
+							act = Activities.ORBITING;
+							orbitCenter = Map.getOrbitCenter();
+						} else if (dash_frame == 0) { // dash cooldown
+							act = Activities.DASHING;
+							tail.Shoot();
+						}
+						break;
 
-				case Activities.ORBITING:
-					act = Activities.DEFAULT;
-					break;
+					case Activities.ORBITING:
+						act = Activities.DEFAULT;
+						break;
 
-				case Activities.DASHING:
-					break;
+					case Activities.DASHING:
+						break;
 
-				case Activities.DEAD:
-					break;
+					case Activities.DEAD:
+						break;
+				}
 			}
 		}
 
 		public void Eat(byte OrbId) {
 			Orb orb = Orb.All[OrbId];
 
-			if (!orb.NoOwner) HEADS[orb.owner].tail.Remove(OrbId);
+			if (!orb.isWhite) HEADS[orb.Owner].tail.Remove(OrbId);
 
 			orb.NewOwner(this.KeyCode);
 			tail.Add(OrbId);
@@ -210,16 +216,15 @@ namespace Eight_Orbits.Entities {
 		public void Die() {
 			lock (lock_die) {
 				if (Died) return;
-				Died = true;
+				this.act = Activities.DEAD;
 			}
+
 			OnUpdate -= e_update;
 			if (AnimationsEnabled)
 				window.DrawHead -= draw_event;
 
 			if (Tick < 60 + Map.StartRoundTime)
 				MVP.Add(MVPTypes.EARLY_KILL, DisplayKey);
-
-			this.act = Activities.DEAD;
 
 			ActiveKeys.Remove(this.KeyCode);
 			InactiveKeys.Insert(0, this.KeyCode);
@@ -269,11 +274,11 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Update() {
-			if (!Ingame) return;
+			if (!Ingame || INACTIVE) return;
 			tail.logAdd(pos.Copy());
 			tail.Update();
 			v.L = speed;
-			if (dashFrame < 0) dashFrame++;
+			if (dash_frame < 0) dash_frame++;
 
 			switch (act) {
 				case Activities.DEFAULT:
@@ -286,18 +291,18 @@ namespace Eight_Orbits.Entities {
 					break;
 
 				case Activities.DASHING:
-					v *= 2d / (Math.Pow(2d * dashFrame / dash_length - 1d, 2d) + 1d); // some complicated resistance formula
+					v *= 2d / (Math.Pow(2d * dash_frame / dash_length - 1d, 2d) + 1d); // some complicated resistance formula
 
 					pos += v;
 					
-					z = HeadR - (float) Math.Cos(dashFrame / (double) dash_length * Math.PI * 2) * HeadR;
+					z = HeadR - (float) Math.Cos(dash_frame / (double) dash_length * Math.PI * 2) * HeadR;
 					
-					if (dashFrame++ == dash_length) {
+					if (dash_frame++ == dash_length) {
 						act = Activities.DEFAULT;
-						dashFrame = -1;
-					} else if (dashFrame == dash_length/4) {
+						dash_frame = -1;
+					} else if (dash_frame == dash_length/4) {
 						DashHideText = true;
-					} else if (dashFrame == dash_length*3/4) {
+					} else if (dash_frame == dash_length*3/4) {
 						DashHideText = false;
 					}
 					break;
@@ -325,15 +330,19 @@ namespace Eight_Orbits.Entities {
 			//collisions
 			if (pos.X < HeadR) {
 				v.X = Math.Abs(v.X);
+				pos.X = 2 * HeadR - pos.X;
 				NewColor();
 			} else if (pos.X > W - HeadR) {
 				v.X = -Math.Abs(v.X);
+				pos.X = 2 * (W - HeadR) - pos.X;
 				NewColor();
 			} else if (pos.Y < HeadR) {
 				v.Y = Math.Abs(v.Y);
+				pos.Y = 2 * HeadR - pos.Y;
 				NewColor();
 			} else if (pos.Y > W / 2 - HeadR) {
 				v.Y = -Math.Abs(v.Y);
+				pos.Y = 2 * (W/2 - HeadR) - pos.Y;
 				NewColor();
 			}
 
@@ -364,7 +373,7 @@ namespace Eight_Orbits.Entities {
 
 		public void Draw(Graphics g) {
 			r = HeadR;
-			if (act == Activities.DEAD) return;
+			if (Died) return;
 			Bitmap bmp = new Bitmap((int) Math.Ceiling(r * 2), (int) Math.Ceiling(r * 2));
 			Graphics frame = Graphics.FromImage(bmp);
 			SizeF sz = g.MeasureString(DisplayKey, new Font(Program.FONT, r-1));

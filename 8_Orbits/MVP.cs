@@ -79,6 +79,49 @@ namespace Eight_Orbits {
 
 		public static void Add(MVPTypes type, string hero, string special) => records.Add(new Stat(hero, type, special));
 
+		public static void Analyze2() {
+			bool ace, win, flawless, ghostkill, collateral, two_points;
+			ace = win = flawless =  ghostkill = collateral = two_points = false;
+			int points_left = 0;
+
+			Keys leader;
+			Keys second = Keys.None;
+			Keys mvp;
+
+			if (ActiveKeys.Count == 1) leader = ActiveKeys[0];
+			else leader = Keys.None;
+
+			foreach (Keys p in InactiveKeys) {
+				if (leader == Keys.None || HEADS[leader].Points < HEADS[p].Points) {
+					second = leader;
+					leader = p;
+				} else if (second == Keys.None || HEADS[second].Points < HEADS[p].Points) {
+					second = p;
+				}
+			}
+
+			ace = Ace();
+			if (HEADS[leader].Points < Map.MaxPoints) points_left = Map.MaxPoints - HEADS[leader].Points;
+			else if (Map.MaxPoints != 0 && HEADS[leader].Points - HEADS[second].Points < 2) two_points = true;
+			else if (Flawless()) win = ace = flawless = true;
+			else win = true;
+
+			if (win || ace) mvp = leader;
+
+			List<Stat> ghostkills;
+			if (records.Exists((Stat stat) => stat.Type == MVPTypes.GHOSTKILL)) {
+				ghostkill = true;
+				ghostkills = records.FindAll((Stat stat) => stat.Type == MVPTypes.GHOSTKILL);
+			} else ghostkills = new List<Stat>(0);
+
+			List<Stat> collats;
+			if (records.Exists((Stat stat) => stat.Type == MVPTypes.COLLATERAL)) {
+				collateral = true;
+				collats = records.FindAll((Stat stat) => stat.Type == MVPTypes.COLLATERAL);
+			} else collats = new List<Stat>(0);
+
+			///mvp = ace || win? leader : ghostkill? ghostkills.Count == 1? ghostkills[0].Hero : Keys.None :
+		}
 		public static void Analyze() {
 			//get points
 			Keys leader;
@@ -152,8 +195,11 @@ namespace Eight_Orbits {
 		}
 
 		public static bool Ace() {
-			if (InactiveKeys.Count < 3) return false;
-			foreach (Keys key in InactiveKeys) if (HEADS[key].Kills > 0) return false;
+			byte c = (byte) InactiveKeys.Count;
+			if (c < 3) return false;
+			else if (ActiveKeys.Count > 0) return HEADS[ActiveKeys[0]].Kills == c;
+			else foreach (Keys key in InactiveKeys) if (!(HEADS[key].Kills == 0 || HEADS[key].Kills == c - 1)) return false;
+
 			return true;
 		}
 

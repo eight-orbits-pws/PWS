@@ -191,6 +191,14 @@ namespace Eight_Orbits.Properties {
 			return laser.L; //in pixels
 		}
 
+		public double AutoDistance(Circle c) {
+			double d = laser.L;
+
+			if (this.Hit(c)) d = Min(d, this.Distance(c));
+
+			return d;
+		}
+
 		/*public double Distance() {
 			IVector lefttop = new IPoint(0, Program.C) - gun;
 			IVector topleft = new IPoint(Program.C, 0) - gun;

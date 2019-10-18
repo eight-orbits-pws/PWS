@@ -15,22 +15,31 @@ namespace Eight_Orbits {
 		
 		[STAThread]
 		public static void Main() {
+			//Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+
 			World.Maps.Create();
 
 			Map = new World();
 			Parallel.Invoke(() => {
-				if (SyncUpdate) UpdateThread = new MyTimer(1000d / 120d, Update, "Update_Thread", false, ThreadPriority.AboveNormal);
-				else window.StartAsyncUpdate();
+				if (SyncUpdate) {
+					UpdateThread = new MyTimer(1000d / 120d, Update, "Update_Thread", false, ThreadPriority.AboveNormal);
+					NeuralThread = new MyTimer(1000d / 120d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
+					UpdateThread.Start();
+					NeuralThread.Start();
+				} else
+					window.StartAsyncUpdate();
 
-				if (SyncUpdate) NeuralThread = new MyTimer(1000d / 120d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
+				if (SyncUpdate) 
 				// else update in UpdateThread
 
 				AssistThread = new AssistKill();
-				Map.OnClear += new Action(() => { OnUpdateAnimation = null; });
+				Map.OnClear += new Action(() => OnUpdateAnimation = null);
 
 				if (AnimationsEnabled) {
-					if (SyncUpdate) VisualThread = new MyTimer(1000d / 240d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
-					else {
+					if (SyncUpdate) {
+						VisualThread = new MyTimer(1000d / 240d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
+						VisualThread.Start();
+					} else {
 						System.Timers.Timer timer = new System.Timers.Timer(1000d / 60d);
 						timer.Elapsed += window.Update_Visual;
 						timer.Start();
@@ -41,6 +50,7 @@ namespace Eight_Orbits {
 			Map.spawnOrb();
 
 			Console.WriteLine(HeadR / W);
+
 
 			if (AnimationsEnabled) {
 				Application.EnableVisualStyles();
@@ -93,7 +103,6 @@ namespace Eight_Orbits {
 		public static readonly List<Keys> InactiveKeys = new List<Keys>();
 
 		public static readonly Random R = new Random();
-		//public static TaskFactory Manager = new TaskFactory();
 
 		public static float HeadR => 32f * Scale;
 		public static float OrbR => 25f * Scale;
@@ -130,16 +139,15 @@ namespace Eight_Orbits {
 
         private static HashSet<Keys> check = new HashSet<Keys>();
 
+
 		public static void Update() {
 			byte iframe = 0;
 			do {
 				lock (updatinglocker) {
 					frame++;
 					if (SlowMo) {
-						if (SpeedMo && frame % 3 != 0)
-							return;
-						else if (!SpeedMo && frame % 12 != 0)
-							return;
+						if (SpeedMo && frame % 3 != 0) return;
+						else if (!SpeedMo && frame % 12 != 0) return;
 					}
 					tick++;
 					OnUpdate?.Invoke();
@@ -150,11 +158,13 @@ namespace Eight_Orbits {
 
 					if (state == States.INGAME) {
 
-						for (int b = Blast.All.Count - 1; b >= 0; b--)
-							Blast.All[b].Update();
-						if (tick % 6 == 0)
-							Blast.Spawn();
+						lock (Blast.BlastLock) {
+							for (int b = Blast.All.Count - 1; b >= 0; b--)
+								Blast.All[b].Update();
 
+							if (tick % 6 == 0)
+								Blast.Spawn();
+						}
 						//Update Players
 						int i, c; //indexers
 						Orb orb;
@@ -171,12 +181,12 @@ namespace Eight_Orbits {
                                             i = Orb.All.Count - 1;
 										orb = Orb.All[i];
 										if (p.Collide(orb)) {
-											if (orb.NoOwner)
+											if (orb.isWhite)
 												p.Eat((byte) i);
-											else if (orb.owner != p.KeyCode && orb.state != OrbStates.TRAVELLING && !p.INVINCIBLE) {
-												new Coin(p.pos, HEADS[orb.owner].Reward((byte)i, p.KeyCode), HEADS[orb.owner].color);
+											else if (orb.isDangerTo(p.KeyCode) && !p.INVINCIBLE) {
+												new Coin(p.pos, HEADS[orb.Owner].Reward((byte)i, p.KeyCode), HEADS[orb.Owner].color);
 												p.Die();
-												AssistThread.AddKill(orb.owner, p.KeyCode);
+												AssistThread.AddKill(orb.Owner, p.KeyCode);
 												if (ChaosMode) TriggerSlowMo(30);
 											}
 										}
@@ -197,7 +207,7 @@ namespace Eight_Orbits {
 					}
 				}
 
-				if (iframe++ == 1) return; 
+				if (iframe++ == 1) return;
 			} while (SpeedMo);
 		}
 
@@ -253,22 +263,23 @@ namespace Eight_Orbits {
 		}
 
 		private static void Bounce(Head p, Head P) {
-			//new Assist(p, P);
 			IVector distance = P.pos - p.pos;
 			double normal = distance.A;
 
-			//normalize
-			p.v.A -= normal;
-			P.v.A -= normal;
+			if (p.DashFrame == 0 && P.DashFrame == 0) {
+				//normalize
+				p.v.A -= normal;
+				P.v.A -= normal;
 
-			//swap the X values;
-			double swappable = p.v.X;
-			p.v.X = P.v.X;
-			P.v.X = swappable;
+				//swap the X values;
+				double swappable = p.v.X;
+				p.v.X = P.v.X;
+				P.v.X = swappable;
 
-			//denormalize
-			p.v.A += normal;
-			P.v.A += normal;
+				//denormalize
+				p.v.A += normal;
+				P.v.A += normal;
+			}
 
 			//now move them apart
 			double to_correct = HeadR * 2 - distance.L;

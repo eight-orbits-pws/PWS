@@ -143,26 +143,22 @@ namespace Neural_Network
 			OnUpdateNNW -= update;
 			All.Remove(this);
 		}
-		
+
+		readonly HashSet<double> distances = new HashSet<double>();
+        private static readonly double diagonal = Sqrt(W * W + H * H);
+		private static readonly double deltaA = PI / 6d;
 		private void fetch_input() {
 			//inorbit, rotation, x, y, orbs in tail
 			//twelve rays
 			//each has distance to first { orbit, blast, orb, orb, player }
 			//type: player | blast | orb(w) | orb(p) | wall | orbits
 			//65 input nodes total
+			if (!HEADS.ContainsKey(Key) || Map.phase != Phases.NONE) return;
+			Head head = HEADS[Key];
 
-			Head head;
-			try {
-				head = HEADS[Key];
-			} catch (KeyNotFoundException) {
-				return;
-			}
-
-			if (head.Died || Map.phase != Phases.NONE) return;
+			if (head.Died) return;
 			
 			ray.Set(head.pos, head.v);
-			HashSet<double> distances = new HashSet<double>();
-			double deltaA = Math.PI / 6d;
 			
 			Input[0].add(BoolToInt(Map.InOrbit(head.pos)));
 			Input[1].add(head.v.A / PI);
@@ -170,31 +166,30 @@ namespace Neural_Network
 			Input[3].add(head.pos.Y / W);
 			lock (Orb.OrbLock) Input[4].add(head.tail.length == 0? -1 : 1 / head.tail.length);
 
-            double diagonal = Sqrt(W ^ 2 + H ^ 2);
 
 			for (int i = 0; i < 12; i++) {
 				foreach (Circle orbit in Map.Orbits) if (ray.Hit(orbit)) distances.Add(ray.Distance(orbit));
-				if (distances.Count == 0) distances.Add(-1);
+				if (distances.Count == 0) distances.Add(diagonal);
 				Input[5 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
 				lock (Blast.BlastLock) foreach (Circle blast in Blast.All) if (ray.Hit(blast)) distances.Add(ray.Distance(blast));
-				if (distances.Count == 0) distances.Add(-1);
+				if (distances.Count == 0) distances.Add(diagonal);
 				Input[6 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
-				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.NoOwner&& ray.Hit(orb)) distances.Add(ray.Distance(orb));
-				if (distances.Count == 0) distances.Add(-1);
+				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.isWhite&& ray.Hit(orb)) distances.Add(ray.Distance(orb));
+				if (distances.Count == 0) distances.Add(diagonal);
 				Input[7 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
-				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (ray.Hit(orb) && !orb.NoOwner&& orb.owner != Key) distances.Add(ray.Distance(orb));
-				if (distances.Count == 0) distances.Add(-1);
+				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (ray.Hit(orb) && !orb.isWhite && orb.Owner != Key) distances.Add(ray.Distance(orb));
+				if (distances.Count == 0) distances.Add(diagonal);
 				Input[8 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
 				lock (ActiveLock) foreach (Keys k in ActiveKeys) if (k != Key && ray.Hit(HEADS[k])) distances.Add(ray.Distance(HEADS[k]));
-				if (distances.Count == 0) distances.Add(-1);
+				if (distances.Count == 0) distances.Add(diagonal);
 				Input[9 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
@@ -446,7 +441,7 @@ namespace Neural_Network
 		public StdNeuron(Neat sender, int index) : base(sender, index) { }
 
 		public override void calc(Neat nnw) {
-			value = MathNNW.Satlins(input);
+			value = MathNNW.ReLU(input);
             input = 0;
         }
 
@@ -464,7 +459,7 @@ namespace Neural_Network
 		public OutputNeuron(Neat sender, int index) : base(sender, index) { }
 
 		public override void calc(Neat nnw) {
-			value = MathNNW.Satlins(input);
+			value = MathNNW.Output(input);
             input = 0;
         }
 		
@@ -477,10 +472,10 @@ namespace Neural_Network
     }
 
 	static class MathNNW {
-		public static double ReLU(double x) => Max(0, x);
-		public static double Satlin(double x) => Max(0, Min(x, 1));
-		public static double Satlins(double x) => Max(-1, Min(x, 1));
-		public static double Output(double x) => Max(0, Sign(x)); // 0 or 1
+		public static double ReLU(double x) => (int) x > 0? x : 0;
+		public static double Satlin(double x) => x > 0? x < 1? x : 1 : 0;
+		public static double Satlins(double x) => x > -1? x < 1? x : 1 : -1;
+		public static double Output(double x) => x > 0? 1 : 0; // 0 or 1
 		public static double Radial(double x) => Max(0, 1D-Abs(x));
 		public static double Sinus(double x) => Sin(x);
         public static double Sigmoid(double x) => 2 / (1 + Exp(-5*x)) - 1; // between -1 and 1

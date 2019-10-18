@@ -37,7 +37,11 @@ namespace Eight_Orbits {
 			this.startTick = Program.Tick;
 
 			if (keep) Program.OnUpdate += update;
-			else Program.OnUpdateAnimation += update;
+			else if (Program.SyncUpdate) Program.OnUpdateAnimation += update;
+			else {
+				this.ended = true;
+				this.c = e;
+			}
 		}
 
 		public Animatable(Animatable parent) {
@@ -52,11 +56,12 @@ namespace Eight_Orbits {
 			this.type = parent.type;
 			
 			this.keep = false;
-			Program.OnUpdateAnimation += update;
+			if (Program.SyncUpdate) Program.OnUpdateAnimation += update;
 		}
 
 		public void Remove() {
 			this.OnEnd = null;
+			this.c = this.e;
 			if (keep) Program.OnUpdate -= update;
 			else Program.OnUpdateAnimation -= update;
 		}
@@ -76,7 +81,6 @@ namespace Eight_Orbits {
 		}
 
 		private void update() {
-			//if (!Program.SyncUpdate) return;
 			double p;
 			if (ended) {
 				p = 1;
@@ -215,7 +219,6 @@ namespace Eight_Orbits {
 
 		private readonly PaintEvent draw;
 		private readonly Action update;
-		//private readonly Action remove;
 
 		public Coin(IPoint pos, int points, Color color) {
 			if (points == 0 || !Program.SyncUpdate) return;

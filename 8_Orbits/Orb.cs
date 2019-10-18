@@ -21,11 +21,14 @@ namespace Eight_Orbits.Entities {
 				if (isBullet) return killstreak;
 				else return 0;
 		}	}
-		public Keys owner = Keys.None;
+		public Keys Owner = Keys.None;
 
-		public bool eaten = false;
-		public bool info = false;
-		public bool isBullet = false;
+		//public bool eaten = false;
+		//public bool info = false;
+		public bool isBullet => state == OrbStates.BULLET;
+		public bool isWhite => state == OrbStates.WHITE || state == OrbStates.SPAWN;
+		public bool isDangerTo(Keys key) => (state == OrbStates.OWNER || state == OrbStates.BULLET) && Owner != key;
+
 		private readonly Animatable contrast_color = new Animatable(0, 5, false);
 
 		public readonly byte ID;
@@ -58,10 +61,9 @@ namespace Eight_Orbits.Entities {
 		}
 
 		public void Pew() {
-			this.pos = HEADS[owner].pos;
-			this.v = HEADS[owner].v;
+			this.pos = HEADS[Owner].pos;
+			this.v = HEADS[Owner].v;
 			this.state = OrbStates.BULLET;
-			this.isBullet = true;
 			OnUpdate += Update;
 			window.DrawBullet += Draw;
 		}
@@ -82,13 +84,12 @@ namespace Eight_Orbits.Entities {
 						this.bulletTime++;
 						v.L = PHI * speed + speed * 2 / Math.Max(1, Math.Sqrt(this.bulletTime));
 
-						if (bulletTime >= 12 && Map.OutOfBounds(pos, OrbR)) {
+						if (bulletTime >= 9 && Map.OutOfBounds(pos, OrbR)) {
 							color = Color.White;
 							state = OrbStates.WHITE;
 							bulletTime = 0;
-							owner = Keys.None;
+							Owner = Keys.None;
 							killstreak = 0;
-							isBullet = false;
 							window.DrawBullet -= Draw;
 							window.DrawWhite += Draw;
 						}
@@ -99,17 +100,21 @@ namespace Eight_Orbits.Entities {
 				}
 
 				//collisions
-				if (pos.X < OrbR)
+				if (pos.X < OrbR) {
 					v.X = Math.Abs(v.X);
-				else if (pos.X > W - OrbR)
+					pos.X = 2d * OrbR - pos.X;
+				} else if (pos.X > W - OrbR) {
 					v.X = -Math.Abs(v.X);
-
-				else if (pos.Y < OrbR)
+					pos.X = 2d * (W - OrbR) - pos.X;
+				} else if (pos.Y < OrbR) {
 					v.Y = Math.Abs(v.Y);
-				else if (pos.Y > W / 2 - OrbR)
+					pos.Y = 2 * OrbR - pos.Y;
+				} else if (pos.Y > W / 2d - OrbR) {
 					v.Y = -Math.Abs(v.Y);
+					pos.Y = 2 * (W / 2d - OrbR) - pos.Y;
 
-				else if (pos.X + pos.Y < C + OrbR * sqrt2 && v * new IVector(-1, -1) > 0) {
+				} else if (pos.X + pos.Y < C + OrbR * sqrt2 && v * new IVector(-1, -1) > 0) {
+					//normalize, mirror, reset
 					v.A += Math.PI / 4d;
 					v.Y = Math.Abs(v.Y);
 					v.A -= Math.PI / 4d;
@@ -134,8 +139,7 @@ namespace Eight_Orbits.Entities {
 
 		public void Move(IPoint log) {
 			lock (update_lock) {
-				if (isBullet)
-					return;
+				if (isBullet) return;
 				if (state == OrbStates.OWNER) {
 					v.A = pos ^ log;
 					v.L = Math.Min(pos * log, speed * 2d);
@@ -154,7 +158,7 @@ namespace Eight_Orbits.Entities {
 			Brush clr;
 			if (state == OrbStates.TRAVELLING) {
 				clr = Brushes.White;
-				if (owner != Keys.None && (!HEADS.ContainsKey(owner) || HEADS[owner].Died)) NewOwner();
+				if (Owner != Keys.None && (!HEADS.ContainsKey(Owner) || HEADS[Owner].Died)) NewOwner();
 			} else if (state == OrbStates.BULLET) {
 				double c = Math.Pow(Math.Sin(bulletTime / 8), 2) * 2 / 3;
 				clr = new SolidBrush(Color.FromArgb((int)(color.R + (255 - color.R) * c), (int)(color.G + (255 - color.G) * c), (int)(color.B + (255 - color.B) * c)));
@@ -168,12 +172,7 @@ namespace Eight_Orbits.Entities {
 				g.FillEllipse(new SolidBrush(AnimatableColor.Lurp(Color.Black, Color.White, (float) contrast_color)), (float) pos.X - 3, (float) pos.Y - 3, 6, 6);
 			}
 
-			/*debug draw ID
-			string txt;
-			if (All.Contains(this)) txt = ID.ToString();
-			else txt = "?";
-			SizeF sz = g.MeasureString(txt, new Font(FONT, 8));
-			g.DrawString(txt, new Font(FONT, 8), Brushes.Gray, (float)pos.X - sz.Width / 2f, (float)pos.Y - sz.Height / 2f);*/
+			//g.DrawString(this.ID.ToString(), new Font(FONT, 13), Brushes.Black, (PointF) pos);
 		}
 
 		public void DrawKills(Graphics g) {
@@ -183,7 +182,7 @@ namespace Eight_Orbits.Entities {
 			if (ContrastMode) g.FillEllipse(new SolidBrush(color), -4,-4,8,8);
 
 			string str;
-			if (this.owner != Keys.None) str = HEADS[owner].Kills.ToString();
+			if (this.Owner != Keys.None) str = HEADS[Owner].Kills.ToString();
 			else {
 				str = "!";
 			}
@@ -196,14 +195,12 @@ namespace Eight_Orbits.Entities {
 
 		public void NewOwner() {
 			lock (OrbLock) {
-				this.owner = Keys.None;
+				this.Owner = Keys.None;
 				this.color = Color.White;
 				this.state = OrbStates.WHITE;
 				this.r = OrbR;
 				OnUpdate += Update;
 				window.DrawWhite += Draw;
-				eaten = false;
-				info = true;
 			}
 		}
 
@@ -213,18 +210,15 @@ namespace Eight_Orbits.Entities {
 				window.DrawWhite -= Draw;
 				if (state == OrbStates.SPAWN) Map.newOrb();
 				if (TutorialActive && newowner != Keys.F13 && newowner != Keys.F14 && state == OrbStates.SPAWN) new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, 255, 255, 255), 0);
-				eaten = true;
-				info = false;
-				this.owner = newowner;
+				this.Owner = newowner;
 				this.state = OrbStates.TRAVELLING;
 				this.color = HEADS[newowner].color;
 			}
 		}
 
-		public bool NoOwner => this.owner == Keys.None;
 
 		private void update_color() {
-			if (this.owner != Keys.None) this.color = HEADS[owner].color;
+			if (this.Owner != Keys.None) this.color = HEADS[Owner].color;
 		}
 	}
 }

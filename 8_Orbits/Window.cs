@@ -20,7 +20,7 @@ namespace Eight_Orbits {
 		public static long Time = 0;
 		public event Action UpdateColors;
 
-		private float scalar = 1;
+		public float scalar = 1;
 
 		Dictionary<Keys, Head> HEADSOnPause = new Dictionary<Keys, Head>();
 
@@ -28,6 +28,7 @@ namespace Eight_Orbits {
 
 		public Image background;
 		public event Action OnUpdateAnimation;
+		public event Action ClearAI;
 
 		public Window() {
 			InitializeComponent();
@@ -78,6 +79,19 @@ namespace Eight_Orbits {
 
 		private void on_resize(object sender, EventArgs e) {
 			this.scalar = this.DisplayRectangle.Width / 1366f;
+		}
+		
+		public void ApplicationPause(object sender, EventArgs e) => ApplicationPause();
+		public void ApplicationPause() {
+			state = States.PAUSED;
+			if (SyncUpdate) {
+				UpdateThread.Stop();
+				NeuralThread.Stop();
+			}
+
+			running = false;
+
+			VisualThread.Stop();
 		}
 
 		public void Update_Visual(object sender, EventArgs e) {
@@ -141,7 +155,7 @@ namespace Eight_Orbits {
 				ContrastMode = !ContrastMode;
 				return;
 			} else if (e.KeyCode == Keys.F3) {
-				if (state == States.NEWGAME && Neat.All.Count < 22) {
+				if (state == States.NEWGAME && Neat.All.Count < 24) {
 					Neat n = new Neat();
 					n.SetupGenZero();
 					n.AddKey();
@@ -152,6 +166,7 @@ namespace Eight_Orbits {
 				return;
 			} else if (e.KeyCode == Keys.F1) {
 				// debug shortcut
+				if (ActiveKeys.Count > 0) new AI(ActiveKeys[ActiveKeys.Count - 1]);
 				return;
 			} else if (e.KeyCode == Keys.F4 && !e.Alt) {
 				if (state == States.NEWGAME) {
@@ -173,13 +188,13 @@ namespace Eight_Orbits {
 			} else if (e.KeyCode == Keys.F10) {
 				if (SyncUpdate) {
 					SyncUpdate = false;
-					UpdateThread.Pause();
-					NeuralThread.Pause();
+					UpdateThread.Stop();
+					NeuralThread.Stop();
 					StartAsyncUpdate();
 				} else {
 					SyncUpdate = true;
-					UpdateThread.UnPause();
-					NeuralThread.UnPause();
+					UpdateThread.Start();
+					NeuralThread.Start();
 				}
 				return;
 			} else if (e.KeyCode == Keys.F7) {
@@ -204,34 +219,34 @@ namespace Eight_Orbits {
 				}
 				return;
 			}
-
-			else if (e.KeyCode == Keys.F12 && e.Alt && state == States.NEWGAME && !TutorialActive) {
-				if (ActiveKeys.Count != 1) return;
-				TUTO = new Tutorial(Map);
-				TutorialActive = true;
-				Map.StartGame();
+			
+			else if (e.KeyCode == Keys.F12) {
+				if (e.Alt && state == States.NEWGAME && !TutorialActive) {
+					if (ActiveKeys.Count != 1)
+						return;
+					TUTO = new Tutorial(Map);
+					TutorialActive = true;
+					Map.StartGame();
+					if (SyncUpdate) NeuralThread.Start();
+				}
 				return;
 				// trigger tutorial
-			}
+			} else if (e.KeyCode == Keys.F6) {
+				if (ActiveKeys.Count != 0)
+					return;
 
-            else if (e.KeyCode == Keys.F6)
-            {
-                if (ActiveKeys.Count != 0) return;
+				BotArena arena = new BotArena(5, BotArena.Type.MAX_POINTS); /// <   -	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
 
-                BotArena arena = new BotArena(6, BotArena.Type.MAX_POINTS); /// <   -	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
+				Map = arena;
+				arena.AddBots(false);
+				Map.StartGame();
 
-                Map = arena;
-                arena.AddBots(false);
-                Map.StartGame();
+				Ingame = true;
+				state = States.INGAME;
 
-                Ingame = true;
-                state = States.INGAME;
-
-                return;
-                // trigger bot arena
-            }
-			
-			else if (e.KeyCode == Keys.F5) {
+				return;
+				// trigger bot arena
+			} else if (e.KeyCode == Keys.F5) {
 				switch (Gamemode) {
 					case Gamemodes.DEFAULT:
 						Gamemode = Gamemodes.CHAOS_RED;
@@ -256,7 +271,7 @@ namespace Eight_Orbits {
 					if (e.KeyCode == Keys.Enter && ActiveKeys.Count > 0) { // (re)start game
 						if (e.Shift) Map.ResumeGame();
 						else Map.StartGame();
-						//ForcePaused = false;
+						if (SyncUpdate) NeuralThread.Start();
 						Ingame = true;
 						state = States.INGAME;
 					} else if (e.KeyCode == Keys.Escape) { // clear all keys
@@ -284,12 +299,7 @@ namespace Eight_Orbits {
 					break;
 				case States.INGAME:
 					if (e.KeyCode == Keys.Escape) { //pause game
-						state = States.PAUSED;
-                        if (SyncUpdate)
-					        Program.UpdateThread.Pause();
-						//else ForcePaused = true;
-						VisualThread.Pause();
-						running = false;
+						ApplicationPause();
 					} else if (ActiveKeys.Contains(ekey)) { //default action
 						HEADS[ekey].Action();
 					} break;
@@ -297,9 +307,11 @@ namespace Eight_Orbits {
 					if (e.KeyCode == Keys.Escape) { // unpause
 						state = States.INGAME;
 						Ingame = true;
-						if (SyncUpdate) UpdateThread.UnPause();
-						else StartAsyncUpdate();
-						VisualThread.UnPause();
+						if (SyncUpdate) {
+							UpdateThread.Start();
+							NeuralThread.Start();
+						} else StartAsyncUpdate();
+						VisualThread.Start();
 						//ForcePaused = false;
 						
 					} else if (e.KeyCode == Keys.Enter) { // let players join
@@ -310,8 +322,8 @@ namespace Eight_Orbits {
 						state = States.NEWGAME;
 						lock (ActiveLock) foreach (Keys key in ActiveKeys) HEADS[key].v = IVector.Up;
 						Ingame = false;
-						VisualThread.UnPause();
-						if (SyncUpdate) UpdateThread.UnPause();
+						VisualThread.Start();
+						if (SyncUpdate) UpdateThread.Start();
 						else StartAsyncUpdate();
 					}
 					break;

@@ -47,6 +47,7 @@ namespace Eight_Orbits {
 		}
 		
 		public virtual void SetMap() {
+
 			HashSet<Orbit> temp;
 			do {
 				temp = Maps.Random;
@@ -417,9 +418,6 @@ namespace Eight_Orbits {
 				Me.Add(new Orbit(.5f, .5f, 1/11f));
 				Me.Add(new Orbit(31/44f-headr/2, 15/44f+headr, 1/11f));
 				Me.Add(new Orbit(10/11f-headr, 2/11f+2*headr, 1/11f));
-				//Slash.Add(new Orbit(2.5f/28f, 11.5f/14f, 1/15f));
-				//Slash.Add(new Orbit(6/28f, 10/14f, 1/15f));
-				//Slash.Add(new Orbit(6/28f, 10/14f, 1/15f));
 			}
 
 			public static HashSet<Orbit> fromMapName(MapNames name) {

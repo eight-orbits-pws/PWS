@@ -23,11 +23,9 @@ namespace Eight_Orbits {
 			this.name = name;
 			this.priority = priority;
 			this.is_background = IsBackground;
-			start();
 			
 			timer = new System.Timers.Timer(interval);
 			timer.Elapsed += new ElapsedEventHandler(fire);
-			timer.Start();
 		}
 
 		private void application_applicationexit(object sender, EventArgs e) {
@@ -55,11 +53,11 @@ namespace Eight_Orbits {
 			exec.Start();
 		}
 
-		public void Pause() {
+		public void Stop() {
 			this.timer.Stop();
 			this.stop = true;
 		}
-		public void UnPause() {
+		public void Start() {
 			start();
 			this.timer.Start();
 		}

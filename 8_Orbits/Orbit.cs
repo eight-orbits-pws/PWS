@@ -12,7 +12,7 @@ namespace Eight_Orbits.Entities {
 			this.color = Color.FromArgb(255, 200, 200, 200);
 			this.pos = new IPoint((double) x * W, (double) y * W / 2);
 			this.r = W * r - 2f * Scale;
-			this.R = new Animatable(0, this.r, 12, AnimationTypes.SIN, false);
+			this.R = new Animatable(0, this.r, 12, AnimationTypes.SIN, true);
 			this.o = 5f * Scale;
 		}
 
