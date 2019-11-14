@@ -24,6 +24,7 @@ namespace Eight_Orbits {
 			this.key = key;
 
 			Program.OnUpdate += update;
+			HEAD.OnRemove += remove;
 		}
 
 		private void action() {
@@ -33,7 +34,7 @@ namespace Eight_Orbits {
 		}
 
 		private void remove() {
-			Program.OnUpdateNNW -= update;
+			Program.OnUpdate -= update;
 		}
 
 		Ray ray = new Ray();
@@ -76,7 +77,7 @@ namespace Eight_Orbits {
 			ray.laser.A += Math.PI / 3;
 			if (cast_to_all(ray)) return;
 
-			double n_edible = diagonal;
+			n_edible = diagonal;
 			ray.laser.A = HEAD.v.A;
 			ray.laser.L = diagonal;
 			lock (Orb.OrbLock) {
@@ -96,55 +97,67 @@ namespace Eight_Orbits {
 				}
 			}
 		}
-
+		double n_edible, nearest_edible, nearest_danger, l, d;
+		byte iteration;
 		private bool cast_to_all(Ray ray) {
-			double l = ray.laser.L;
-			double nearest_danger = l;
-			double nearest_edible = l;
-			double d = 0;
+			// if mistake_happened repeat
+			// if mistakes.count is 256 return
 
-			lock (Blast.BlastLock) {
-				foreach (Circle blast in Blast.All) {
-					nearest_edible = Math.Min(nearest_edible, ray.AutoDistance(blast));
+			iteration = 0;
+			while (Program.ApplicationRunning && iteration++ < 255) {
+				l = ray.laser.L;
+				nearest_danger = l;
+				nearest_edible = l;
+				d = 160;
+
+				lock (Blast.BlastLock) {
+					foreach (Circle blast in Blast.All) {
+						nearest_edible = Math.Min(nearest_edible, ray.AutoDistance(blast));
+					}
 				}
-			}
 
-			lock (ActiveLock) {
-				foreach (Keys k in ActiveKeys) {
-					if (k != key) nearest_danger = Math.Min(nearest_danger, ray.AutoDistance(HEADS[k]));
+				lock (ActiveLock) {
+					foreach (Keys k in ActiveKeys) {
+						if (k != key)
+							nearest_danger = Math.Min(nearest_danger, ray.AutoDistance(HEADS[k]));
+					}
 				}
-			}
-			lock (Orb.OrbLock) {
-				for (int i = Orb.All.Count - 1; i >= 0; i--) {
-					d = ray.AutoDistance(Orb.All[i]);
+				lock (Orb.OrbLock) {
+					foreach (Orb orb in Orb.All)
+						if (orb.isWhite)
+							nearest_edible = Math.Min(nearest_edible, ray.AutoDistance(orb));
 
-					if (Orb.All[i].isWhite) {
-						nearest_edible = Math.Min(nearest_edible, d);
-					} else if (!Orb.All[i].isWhite && Orb.All[i].isDangerTo(key)) {
-						nearest_danger = Math.Min(nearest_danger, d);
+					for (int i = Orb.All.Count - 1; i >= 0; i--) {
+						d = ray.AutoDistance(Orb.All[i]);
 
-						if (Orb.All[i].pos * HEAD.pos <= m + OrbR && (Map.InOrbit(HEAD.pos) != (HEAD.act == Activities.DEFAULT))) {
-							if (SyncUpdate) new Thread(action).Start();
-							else action();
-							return true;
+						if (Orb.All[i].isDangerTo(key)) {
+							nearest_danger = Math.Min(nearest_danger, d);
+
+							if (Orb.All[i].pos * HEAD.pos <= m + OrbR && (Map.InOrbit(HEAD.pos) != (HEAD.act == Activities.DEFAULT))) {
+								if (SyncUpdate)
+									new Thread(action).Start();
+								else
+									action();
+								return true;
+							}
 						}
 					}
 				}
-			}
 
-			//ray.laser.L = Math.Min(nearest_danger, nearest_edible);
-			//System.Drawing.Graphics g = window.CreateGraphics();
-			//g.ScaleTransform(window.scalar, window.scalar);
-			//g.DrawLine(nearest_danger < nearest_edible? System.Drawing.Pens.Red : nearest_danger == nearest_edible? System.Drawing.Pens.Blue : System.Drawing.Pens.Green, (System.Drawing.PointF) ray.gun, (System.Drawing.PointF) (ray.gun + ray.laser));
+				//ray.laser.L = Math.Min(nearest_danger, nearest_edible);
+				//System.Drawing.Graphics g = window.CreateGraphics();
+				//g.ScaleTransform(window.scalar, window.scalar);
+				//if (nearest_edible != nearest_danger || nearest_edible == l) g.DrawLine(nearest_danger < nearest_edible? System.Drawing.Pens.Red : nearest_danger == nearest_edible? System.Drawing.Pens.Blue : System.Drawing.Pens.Green, (System.Drawing.PointF) ray.gun, (System.Drawing.PointF) (ray.gun + ray.laser));
 
-			if (nearest_danger < l && nearest_danger <= nearest_edible) {
-				if (nearest_danger == nearest_edible) {
-					ray.laser.L += 0; // debugger trigger point
+				if (nearest_danger < l && nearest_danger <= nearest_edible) {
+					if (nearest_danger == nearest_edible) continue;
+
+					action();
+					return true;
 				}
-				action();
-				return true;
-			}
 
+				return false;
+			}
 			return false;
 		}
 	}

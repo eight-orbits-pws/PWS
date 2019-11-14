@@ -11,8 +11,8 @@ namespace Eight_Orbits.Entities {
 		public static readonly List<Orb> All = new List<Orb>(256);
 		public static readonly object OrbLock = new { };
 
-		public OrbStates state = OrbStates.SPAWN;
-		private short bulletTime = 0;
+		public volatile OrbStates state = OrbStates.SPAWN;
+		private volatile short bulletTime = 0;
 		private byte killstreak = 0;
 		public byte KillStreak { set {
 				if (isBullet) killstreak = value;
@@ -21,13 +21,13 @@ namespace Eight_Orbits.Entities {
 				if (isBullet) return killstreak;
 				else return 0;
 		}	}
-		public Keys Owner = Keys.None;
+		public volatile Keys Owner = Keys.None;
 
 		//public bool eaten = false;
 		//public bool info = false;
-		public bool isBullet => state == OrbStates.BULLET;
-		public bool isWhite => state == OrbStates.WHITE || state == OrbStates.SPAWN;
-		public bool isDangerTo(Keys key) => (state == OrbStates.OWNER || state == OrbStates.BULLET) && Owner != key;
+		public bool isBullet => this.state == OrbStates.BULLET;
+		public bool isWhite => this.state == OrbStates.WHITE || this.state == OrbStates.SPAWN;
+		public bool isDangerTo(Keys _key) => (this.state == OrbStates.OWNER || this.state == OrbStates.BULLET) && this.Owner != _key;
 
 		private readonly Animatable contrast_color = new Animatable(0, 5, false);
 
@@ -68,7 +68,7 @@ namespace Eight_Orbits.Entities {
 			window.DrawBullet += Draw;
 		}
 
-		volatile object update_lock = new { };
+		readonly object update_lock = new { };
 
 		public void Update() {
 			lock (update_lock) {

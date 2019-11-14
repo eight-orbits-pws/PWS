@@ -43,6 +43,7 @@ namespace Eight_Orbits.Entities {
 
 		private readonly PaintEvent draw_event;
 		private readonly Action e_update;
+		public event Action OnRemove;
 
 		private Head() {
 			index = (byte) ActiveKeys.Count;
@@ -130,10 +131,14 @@ namespace Eight_Orbits.Entities {
 			InactiveKeys.Remove(KeyCode);
 			HEADS.Remove(KeyCode);
 			key.Remove();
+			Map.OnClear -= clear;
 			Map.OnStartGame -= Reset;
 			Map.OnStartRound -= Revive;
 			OnUpdate -= e_update;
 			if (AnimationsEnabled) window.DrawHead -= draw_event;
+
+			OnRemove?.Invoke();
+			OnRemove = null;
 
 			Map.SetMaxPoints();
 			try {
@@ -154,6 +159,8 @@ namespace Eight_Orbits.Entities {
 				dash_frame = -1;
 				DashHideText = false;
 			}
+
+			this.act = Activities.DEFAULT;
 		}
 
 		public void Action() {

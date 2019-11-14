@@ -228,10 +228,13 @@ namespace Eight_Orbits {
 			if (SlowMo) return;
 			new Thread(() => {
 				Thread.CurrentThread.Name = "Trigger_SuperSlowMo";
-				SlowMo = true;
 				int tick = Tick;
-				SpinWait.SpinUntil(() => Tick >= tick + 20);
+				SlowMo = true;
+				SpinWait.SpinUntil(() => Tick >= tick + 5);
+				SpeedMo = true;
+				SpinWait.SpinUntil(() => Tick >= tick + 30);
 				SlowMo = false;
+				SpeedMo = false;
 			}).Start();
 		}
 
