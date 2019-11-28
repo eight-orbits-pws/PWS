@@ -91,7 +91,7 @@ namespace Eight_Orbits {
 						} else {
 							white.Remove(id);
 							if (orb.Owner == this.key) {
-								orb.state = OrbStates.OWNER;
+								orb.state = (byte) OrbStates.OWNER;
 								if (!tail.Contains(id))
 									tail.Add(id);
 								orb.r = OrbR;

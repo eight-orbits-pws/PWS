@@ -11,7 +11,7 @@ namespace Eight_Orbits.Entities {
 		public static readonly List<Orb> All = new List<Orb>(256);
 		public static readonly object OrbLock = new { };
 
-		public volatile OrbStates state = OrbStates.SPAWN;
+        public volatile byte state = 0; //SPAWN, WHITE, TRAVELLING, BULLET, OWNER
 		private volatile short bulletTime = 0;
 		private byte killstreak = 0;
 		public byte KillStreak { set {
@@ -25,9 +25,9 @@ namespace Eight_Orbits.Entities {
 
 		//public bool eaten = false;
 		//public bool info = false;
-		public bool isBullet => this.state == OrbStates.BULLET;
-		public bool isWhite => this.state == OrbStates.WHITE || this.state == OrbStates.SPAWN;
-		public bool isDangerTo(Keys _key) => (this.state == OrbStates.OWNER || this.state == OrbStates.BULLET) && this.Owner != _key && !(KingOfTheHill && HEADS[Owner].INVINCIBLE);
+		public bool isBullet => this.state == (byte) OrbStates.BULLET;
+		public bool isWhite => this.state == (byte) OrbStates.WHITE || this.state == (byte) OrbStates.SPAWN;
+		public bool isDangerTo(Keys _key) => (this.state == (byte) OrbStates.OWNER || this.state == (byte) OrbStates.BULLET) && this.Owner != _key && !(KingOfTheHill && HEADS[Owner].INVINCIBLE);
 
 		private readonly Animatable contrast_color = new Animatable(0, 5, false);
 
@@ -65,7 +65,7 @@ namespace Eight_Orbits.Entities {
 				if (Owner == Keys.None) return;
 				this.pos = HEADS[Owner].pos;
 				this.v = HEADS[Owner].v;
-				this.state = OrbStates.BULLET;
+				this.state = (byte) OrbStates.BULLET;
 				OnUpdate += Update;
 				window.DrawBullet += Draw;
 			}
@@ -78,14 +78,14 @@ namespace Eight_Orbits.Entities {
 		public void Update() {
 			lock (update_lock) {
 				switch (state) {
-					case OrbStates.WHITE:
+					case 1:
 						if (r < OrbR) color = Color.Red;
 						v.L -= Math.Sqrt(Math.Max(0, v.L)) / 26d;
 						if (v.L < 0.125)
 							v.L = 0;
 						break;
 
-					case OrbStates.BULLET:
+					case 3:
 						this.bulletTime++;
 						v.L = PHI * speed + speed * 2 / Math.Max(1, Math.Sqrt(this.bulletTime));
 
@@ -94,7 +94,7 @@ namespace Eight_Orbits.Entities {
 								HEADS[Owner].Eat(ID);
 							} else {
 								color = Color.White;
-								state = OrbStates.WHITE;
+								state = (byte) OrbStates.WHITE;
 								bulletTime = 0;
 								Owner = Keys.None;
 								window.DrawWhite += Draw;
@@ -130,7 +130,6 @@ namespace Eight_Orbits.Entities {
 					d = Math.Sqrt(Math.Abs(pos.X + pos.Y - C - OrbR * sqrt2) / sqrt2);
 					n = ~new IVector(-1, -1);
 					pos -= 2 * d * n;
-					//normalize, mirror, reset
 					v -= 2 * (v * n) * n;
 				} else if (W - pos.X + pos.Y < C + OrbR * sqrt2 && v * new IVector(1, -1) >= 0) {
 					d = Math.Sqrt(Math.Abs(W - pos.X + pos.Y - C - OrbR * sqrt2) / sqrt2);
@@ -157,7 +156,7 @@ namespace Eight_Orbits.Entities {
 		public void Move(IPoint log) {
 			lock (update_lock) {
 				if (isBullet) return;
-				if (state == OrbStates.OWNER) {
+				if (state == (byte) OrbStates.OWNER) {
 					v.A = pos ^ log;
 					v.L = Math.Min(pos * log, speed * 2d);
 				} else {
@@ -173,10 +172,10 @@ namespace Eight_Orbits.Entities {
 
 		public void Draw(Graphics g) {
 			Brush clr;
-			if (state == OrbStates.TRAVELLING) {
+			if (state == (byte) OrbStates.TRAVELLING) {
 				clr = Brushes.White;
 				if (Owner != Keys.None && (!HEADS.ContainsKey(Owner) || HEADS[Owner].Died)) NewOwner();
-			} else if (state == OrbStates.BULLET) {
+			} else if (state == (byte) OrbStates.BULLET) {
 				double c = Math.Pow(Math.Sin(bulletTime / 8), 2) * 2 / 3;
 				clr = new SolidBrush(Color.FromArgb((int)(color.R + (255 - color.R) * c), (int)(color.G + (255 - color.G) * c), (int)(color.B + (255 - color.B) * c)));
 			} else
@@ -217,7 +216,7 @@ namespace Eight_Orbits.Entities {
 			lock (OrbLock) {
 				this.Owner = Keys.None;
 				this.color = Color.White;
-				this.state = OrbStates.WHITE;
+				this.state = (byte) OrbStates.WHITE;
 				this.r = OrbR;
 				OnUpdate += Update;
 				window.DrawWhite += Draw;
@@ -228,10 +227,10 @@ namespace Eight_Orbits.Entities {
 			lock (OrbLock) {
 				OnUpdate -= Update;
 				window.DrawWhite -= Draw;
-				if (state == OrbStates.SPAWN) Map.newOrb();
-				if (TutorialActive && newowner != Keys.F13 && newowner != Keys.F14 && state == OrbStates.SPAWN) new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, 255, 255, 255), 0);
+				if (state == (byte) OrbStates.SPAWN) Map.newOrb();
+				if (TutorialActive && newowner != Keys.F13 && newowner != Keys.F14 && state == (byte) OrbStates.SPAWN) new Animation(pos, 80, 0, W, HeadR, (float)PHI * HeadR, Color.FromArgb(150, 255, 255, 255), 0);
 				this.Owner = newowner;
-				this.state = OrbStates.TRAVELLING;
+				this.state = (byte) OrbStates.TRAVELLING;
 				this.color = HEADS[newowner].color;
 			}
 		}

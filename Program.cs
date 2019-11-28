@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
 using Eight_Orbits.Entities;
@@ -16,6 +17,9 @@ namespace Eight_Orbits {
 		[STAThread]
 		public static void Main() {
 			//Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            
+            File.WriteAllBytes("./test.ai", 10);
+            Console.WriteLine(File.ReadAllBytes("./test.ai"));
 
 			World.Maps.Create();
 

@@ -147,6 +147,7 @@ namespace Neural_Network
 		readonly HashSet<double> distances = new HashSet<double>();
         private static readonly double diagonal = Sqrt(W * W + H * H);
 		private static readonly double deltaA = PI / 6d;
+        
 		private void fetch_input() {
 			//inorbit, rotation, x, y, orbs in tail
 			//twelve rays
@@ -178,15 +179,22 @@ namespace Neural_Network
 				Input[6 + 5*i].add(distances.Min() / diagonal);
 				distances.Clear();
 
-				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (orb.isWhite&& ray.Hit(orb)) distances.Add(ray.Distance(orb));
-				if (distances.Count == 0) distances.Add(diagonal);
-				Input[7 + 5*i].add(distances.Min() / diagonal);
-				distances.Clear();
-
-				lock (Orb.OrbLock) foreach (Orb orb in Orb.All) if (ray.Hit(orb) && !orb.isWhite && orb.Owner != Key) distances.Add(ray.Distance(orb));
-				if (distances.Count == 0) distances.Add(diagonal);
-				Input[8 + 5*i].add(distances.Min() / diagonal);
-				distances.Clear();
+				lock (Orb.OrbLock) {
+                    int color = 760;
+                    double d = diagonal;
+                    double d_temp;
+                    foreach (Orb orb in Orb.All) {
+                        if (orb.state == (byte) OrbStates.TRAVELLING) d_temp = ray.AutoDistance(orb);
+                        else d_temp = diagonal;
+                        
+                        if (d_temp < d) {
+                            d = d_temp;
+                            color = (orb.color.R + orb.color.G + orb.color.B);
+                        }
+                    }
+				    Input[7 + 5*i].add(d / diagonal);
+                    Input[8 + 5*i].add(color / 760d);
+                }
 
 				lock (ActiveLock) foreach (Keys k in ActiveKeys) if (k != Key && ray.Hit(HEADS[k])) distances.Add(ray.Distance(HEADS[k]));
 				if (distances.Count == 0) distances.Add(diagonal);
@@ -481,4 +489,16 @@ namespace Neural_Network
         public static double Sigmoid(double x) => 2 / (1 + Exp(-5*x)) - 1; // between -1 and 1
 		public static double R { get { return Program.R.NextDouble(); } }
 	}
+
+    public static byte[] compile(Neat neat) {
+        List<byte> bytes = new List<byte>();
+
+        return bytes.ToArray();
+    }
+
+    public static Neat decompile(byte[] bytes) {
+        Neat neat = new Neat();
+
+        return neat;
+    }
 }
