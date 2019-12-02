@@ -545,12 +545,7 @@ namespace Eight_Orbits.Entities {
 			return Color.FromArgb(a, r, g, b);
 		}
 
-        private double pow(double x) => x * x;
-
-        public static double FromColor(Color color) {
-        }
-        public static Color NewColor(double x) {
-        }
+        private static double pow(double x) => x * x;
 
 		public void NewColor(bool red) => this.color = red? Color.Red : color_creation;
 

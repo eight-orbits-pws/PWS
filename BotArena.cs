@@ -114,7 +114,7 @@ namespace Eight_Orbits
                     break;
             }
 
-            child.FromParent(parent);
+            child.FromParents(parent, null);
 
             // Print child
             //Console.WriteLine("---------------------------");
@@ -150,7 +150,7 @@ namespace Eight_Orbits
                     //    bots[i].FromParent(bots[i - mark]);
 
 					for (int i = 2; i < bots.Count; i++)
-                        if (Program.R.NextDouble() > (double) Program.HEADS[bots[i].Key].Points / MaxPoints) bots[i].FromParent(bots[i % 2]); // 0 or 1
+                        if (Program.R.NextDouble() > (double) Program.HEADS[bots[i].Key].Points / MaxPoints) bots[i].FromParents(bots[i % 2], bots[- ((i % 2) - 1)]); // 0 or 1
                     break;
             }
         }

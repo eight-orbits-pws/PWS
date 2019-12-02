@@ -23,16 +23,13 @@ namespace Neural_Network {
 		protected double input;
 		protected double value;
 		protected int index;
-		public List<Axon> axons = new List<Axon>();
 
 		public double Input { get { return input; } }
-		public double Value { get { return value; } }
+		public double Value { get { return value; } set { this.value = value;  } }
 		public int Index { get { return index; } }
-		public List<Axon> Axons { get { return axons; } }
 
 		public Neuron(Neat sender) {
 			sender.Reset += reset;
-			sender.OnRemove += remove;
 		}
 
 		public Neuron(Neat sender, int index) : this(sender) {
@@ -42,13 +39,6 @@ namespace Neural_Network {
 		}
 
 		public abstract void calc(Neat nnw);
-
-        public void fireAxons(Neat nnw) {
-            if (double.IsNaN(value))
-                value = 0;
-            foreach (Axon axon in axons)
-                nnw[axon.destination].add(value * axon.weight);
-        }
 		
 		public void add(double d) {
 			input += d;
@@ -57,8 +47,6 @@ namespace Neural_Network {
 		public virtual void reset() {
 			input = 0;
 		}
-
-		protected abstract void remove();
 
 	}
 
