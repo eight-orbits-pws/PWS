@@ -49,7 +49,6 @@ namespace Neural_Network
         public int Count { get { return Neurons.Count; } }
         private Ray ray;
 
-        float mutate_weights = 0.80f;
         float mutate_perturb = 0.90f;
         float mutate_step = 0.10f;
 
@@ -66,10 +65,10 @@ namespace Neural_Network
             Reset?.Invoke();
         }
 
-        float mutate_node = 0.50f;
-
-        float mutate_link = 2.00f;
-        float mutate_bias = 0.40f;
+        float mutate_weights = 0.08f;
+        float mutate_node = 0.03f;
+        float mutate_link = 0.05f;
+        float mutate_bias = 0.00f;
 
         public int innovation = 0;
 
@@ -287,9 +286,12 @@ namespace Neural_Network
 
                 foreach (Gene gene in parent.Genes.Concat(other.Genes))
                 {
-                    if (!genes.ContainsKey(gene.innovation) || R.NextDouble() > 0.5)
+                    if (!genes.ContainsKey(gene.innovation))
                     {
-                        genes[gene.innovation] = gene;
+                        Gene mutate = gene;
+                        if (!mutate.enabled && R.NextDouble() < mutate_enable)
+                            mutate.enabled = true;
+                        genes[gene.innovation] = mutate;
                     }
                 }
 
@@ -341,8 +343,7 @@ namespace Neural_Network
 
         public void Mutate()
         {
-            if (R.NextDouble() < mutate_weights)
-                MutateWeights();
+            MutateWeights();
 
             double p = mutate_link;
             while (p > 0)
@@ -363,11 +364,14 @@ namespace Neural_Network
         {
             for (int i = 0; i < Genes.Count; i++)
             {
-                Gene gene = Genes[i];
-                if (R.NextDouble() < mutate_perturb)
-                    gene.axon.weight += (R.NextDouble() * mutate_step * 2) - mutate_step;
-                else
-                    gene.axon.weight = R.NextDouble() * 4 - 2;
+                if (R.NextDouble() < mutate_weights)
+                {
+                    Gene gene = Genes[i];
+                    if (R.NextDouble() < mutate_perturb)
+                        gene.axon.weight += (R.NextDouble() * mutate_step * 2) - mutate_step;
+                    else
+                        gene.axon.weight = R.NextDouble() * 4 - 2;
+                }
             }
         }
 
