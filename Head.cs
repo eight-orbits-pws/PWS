@@ -545,12 +545,21 @@ namespace Eight_Orbits.Entities {
 			return Color.FromArgb(a, r, g, b);
 		}
 
-        private double pow(double x) => x * x;
-
         public static double FromColor(Color color) {
+            return Math.Acos(Math.Sqrt(color.R / 255d)) / PI;
         }
-        public static Color NewColor(double x) {
+
+        public static Color FromDouble(double x) {
+            a = 255;
+			r = (int) Math.Round(pow(Math.Cos(Math.PI * (x + 0/3d))) * 255);
+			g = (int) Math.Round(pow(Math.Cos(Math.PI * (x + 1/3d))) * 255);
+			b = (int) Math.Round(pow(Math.Cos(Math.PI * (x + 2/3d))) * 255);
+
+			return Color.FromArgb(a, r, g, b);
         }
+
+        private static double pow(double x) => x * x;
+
 
 		public void NewColor(bool red) => this.color = red? Color.Red : color_creation;
 

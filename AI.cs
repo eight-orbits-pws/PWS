@@ -144,11 +144,6 @@ namespace Eight_Orbits {
 					}
 				}
 
-				//ray.laser.L = Math.Min(nearest_danger, nearest_edible);
-				//System.Drawing.Graphics g = window.CreateGraphics();
-				//g.ScaleTransform(window.scalar, window.scalar);
-				//if (nearest_edible != nearest_danger || nearest_edible == l) g.DrawLine(nearest_danger < nearest_edible? System.Drawing.Pens.Red : nearest_danger == nearest_edible? System.Drawing.Pens.Blue : System.Drawing.Pens.Green, (System.Drawing.PointF) ray.gun, (System.Drawing.PointF) (ray.gun + ray.laser));
-
 				if (nearest_danger < l && nearest_danger <= nearest_edible) {
 					if (nearest_danger == nearest_edible) continue;
 
