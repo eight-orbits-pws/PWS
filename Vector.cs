@@ -207,42 +207,5 @@ namespace Eight_Orbits.Properties {
 
 			return d;
 		}
-
-		/*public double Distance() {
-			IVector lefttop = new IPoint(0, Program.C) - gun;
-			IVector topleft = new IPoint(Program.C, 0) - gun;
-			IVector righttop = new IPoint(Program.W, Program.C) - gun;
-			IVector topright = new IPoint(Program.W - Program.C, 0) - gun;
-			IVector rightbottom = new IPoint(Program.W, Program.W/2d - Program.C) - gun;
-			IVector bottomright = new IPoint(Program.W - Program.C, Program.W / 2) - gun;
-			IVector leftbottom = new IPoint(0, Program.W - Program.C) - gun;
-			IVector bottomleft = new IPoint(Program.C, Program.W / 2d) - gun;
-			double a = Tan(laser.A);
-			double x = 0, y = 0;
-
-			if (lefttop.A - topleft.A < lefttop.A - laser.A) ;//{ x=25;y=9;} //hit topleft corner
-			else if (topleft.A - topright.A < topleft.A - laser.A) { x = -gun.Y / a; y = -gun.Y; } //hit top
-			else if (topright.A - righttop.A < topright.A - laser.A) ;//{ x=25;y=9;} //hit topright corner
-			else if (-rightbottom.A + bottomright.A < rightbottom.A - laser.A) ;//{ x=25;y=9;} //hit bottomright corner
-			else if (bottomright.A - bottomleft.A < bottomright.A - laser.A) { x = (Program.W / 2d - gun.Y) / a; y = Program.W / 2 - gun.Y; } //hit bottom
-			else if (-bottomleft.A + leftbottom.A < bottomleft.A - laser.A) ;//{ x=25;y=9;} //hit bottomleft corner
-			else if (leftbottom.A - lefttop.A < leftbottom.A - laser.A) { x = Program.W-gun.X; y = a * x; } //hit left
-			else { x = Program.W - gun.X; y = a * x; } //hit right
-
-			laser.L = Sqrt(x * x + y * y);
-			//Program.window.CreateGraphics().DrawLine(System.Drawing.Pens.Blue, (System.Drawing.PointF) gun, (System.Drawing.PointF) (gun + ~laser * Program.W));
-			//Program.window.CreateGraphics().FillEllipse(System.Drawing.Brushes.Red, new System.Drawing.RectangleF((System.Drawing.PointF) (gun + laser - new IVector(3, 3)), new System.Drawing.SizeF(6, 6)));
-			return laser.L;
-		}*/
-
-		/*public static HashSet<Circle> AllEntities() {
-			HashSet<Circle> all = new HashSet<Circle>();
-
-			foreach (Circle head in Program.HEAD.Values) all.Add(new Circle(head));
-			foreach (Circle orb in Entities.Orb.All) all.Add(new Circle(orb));
-			foreach (Circle blast in Entities.Blast.All) all.Add(new Circle(blast));
-
-			return all;
-		}*/
 	}
 }
