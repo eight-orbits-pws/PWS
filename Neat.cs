@@ -56,6 +56,11 @@ namespace Neural_Network
         float mutate_crossover = 0.75f;
         float mutate_enable = 0.25f;
 
+        private static int seconds = 60;
+        private static int ticks = 60 * seconds;
+
+        private int inactiveTicks = 0;
+
         internal void ResetNeurons()
         {
             Reset?.Invoke();
@@ -208,7 +213,10 @@ namespace Neural_Network
 
 		private void update() {
             if (Map.phase != Phases.NONE)
+            {
+                inactiveTicks = 0;
                 return;
+            }
 
 			lock (ThinkLock) {
 				fetch_input();
@@ -227,17 +235,25 @@ namespace Neural_Network
 			}
 
             bool outp = Output.Value > 0;
+
             if (outp && !lastOut) Fire?.Invoke(); // Check if it *started* pressing the key
             else if (!outp && lastOut) KeyUp?.Invoke(); // Check if it *stopped* pressing the key
+
+            if (outp != lastOut)
+            {
+                inactiveTicks = 0;
+            }
+            else
+            {
+                inactiveTicks++;
+                if (inactiveTicks > ticks)
+                {
+                    HEADS[Key].Die();
+                }
+            }
+
             lastOut = outp;
-            //}
-            //catch (Exception e)
-            //{
-           //     if (Map.phase != Phases.NONE)
-           //         return;
-            //    Console.WriteLine(e);
-            //}
-		}
+        }
 		
         public void SetupGenZero()
         {
@@ -263,6 +279,7 @@ namespace Neural_Network
             if (other == null || R.NextDouble() > mutate_crossover)
             {
                 CopyFrom(parent);
+                VaryColor(parent, null);
             }
             else
             {
@@ -286,65 +303,30 @@ namespace Neural_Network
 
                 addNeurons(max);
                 innovation = Max(parent.innovation, other.innovation);
+
+                VaryColor(parent, other);
             }
 
             MutateEnable();
             Mutate();
-
-            VaryColor(parent);
         }
 
-        private void VaryColor(Neat parent)
+        private void VaryColor(Neat parent, Neat other)
         {
             Head head = HEADS[Key];
+
             Head from = HEADS[parent.Key];
+            Head ohead = other == null ? from : HEADS[other.Key];
 
-            HSV hsv;
-            hsv.h = from.color.GetHue();
-            hsv.s = from.color.GetSaturation();
-            hsv.v = from.color.GetBrightness();
+            double hue1 = Head.FromColor(from.color);
+            double hue2 = Head.FromColor(ohead.color);
 
-            hsv.h += (float)R.NextDouble() * 180 - 90;
-            if (hsv.h < 0)
-                hsv.h += 360;
-            if (hsv.h >= 360)
-                hsv.h -= 360;
+            double average = (hue1 + hue2) / 2;
+            if (Math.Abs(hue1 - hue2) > 0.5)
+                average = 0.5 + average;
 
-            head.color = ColorFromHSL(hsv);
-        }
-
-        public struct HSV { public float h; public float s; public float v; }
-
-        public static Color ColorFromHSL(HSV hsl)
-        {
-            if (hsl.s == 0)
-            { int L = (int)hsl.v; return Color.FromArgb(255, L, L, L); }
-
-            double min, max, h;
-            h = hsl.h / 360d;
-
-            max = hsl.v < 0.5d ? hsl.v * (1 + hsl.s) : (hsl.v + hsl.s) - (hsl.v * hsl.s);
-            min = (hsl.v * 2d) - max;
-
-            Color c = Color.FromArgb(255, (int)(255 * RGBChannelFromHue(min, max, h + 1 / 3d)),
-                                          (int)(255 * RGBChannelFromHue(min, max, h)),
-                                          (int)(255 * RGBChannelFromHue(min, max, h - 1 / 3d)));
-            return c;
-        }
-        private static double RGBChannelFromHue(double m1, double m2, double h)
-        {
-            h = (h + 1d) % 1d;
-            if (h < 0) h += 1;
-            if (h * 6 < 1) return m1 + (m2 - m1) * 6 * h;
-            else if (h * 2 < 1) return m2;
-            else if (h * 3 < 2) return m1 + (m2 - m1) * 6 * (2d / 3d - h);
-            else return m1;
-
-        }
-
-        private byte clamp(int i)
-        {
-            return (byte)Math.Max(0, Math.Min(256, i));
+            average += R.NextDouble() / 2 - 0.25;
+            head.color = Head.FromDouble(average);
         }
 
         public void MutateEnable()
