@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Drawing;
 
 using Neural_Network;
 
@@ -14,7 +10,7 @@ namespace Eight_Orbits
     class BotArena : World
     {
 
-        List<Neat> bots = new List<Neat>();
+        public List<Neat> bots = new List<Neat>();
 
         public enum Type
         {
@@ -24,6 +20,11 @@ namespace Eight_Orbits
         }
 
         public Type type;
+
+        public BotArena(Type type)
+        {
+            this.type = type;
+        }
 
         public BotArena(int bots, Type type)
         {

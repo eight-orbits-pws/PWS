@@ -10,7 +10,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Threading;
 using Neural_Network;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace Eight_Orbits {
 	public partial class Window : Form {
@@ -225,7 +225,48 @@ namespace Eight_Orbits {
 			}
 			
 			else if (e.KeyCode == Keys.F12) {
-				if (e.Alt && state == States.NEWGAME && !TutorialActive) {
+                if (!e.Alt) {
+                    if (map is BotArena)
+                    {
+                        List<byte> bytes = new List<byte>();
+                        foreach (Neat bot in ((BotArena) map).bots)
+                            bytes.AddRange(Neat.compile(bot));
+
+                        SaveFileDialog dialog = new SaveFileDialog();
+                        dialog.Filter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
+                        dialog.RestoreDirectory = true;
+
+                        if (dialog.ShowDialog() == DialogResult.OK)
+                        {
+                            File.WriteAllBytes(dialog.FileName, bytes.ToArray());
+                        }
+                    }
+                    else if (ActiveKeys.Count == 0)
+                    {
+                        OpenFileDialog dialog = new OpenFileDialog();
+                        dialog.Filter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
+                        dialog.RestoreDirectory = true;
+
+                        if (dialog.ShowDialog() == DialogResult.OK)
+                        {
+                            List<byte> bytes = new List<byte>(File.ReadAllBytes(dialog.FileName));
+
+                            BotArena arena = new BotArena(BotArena.Type.MAX_POINTS);
+                            map = arena;
+
+                            while (bytes.Count > 0)
+                            {
+                                arena.bots.Add(Neat.decompile(bytes));
+                            }
+
+                            arena.AddBots(false);
+                            Map.StartGame();
+
+                            Ingame = true;
+                            state = States.INGAME;
+                        }
+                    }
+                } else if (state == States.NEWGAME && !TutorialActive) {
 					if (ActiveKeys.Count != 1)
 						return;
 					TUTO = new Tutorial(Map);
@@ -239,7 +280,7 @@ namespace Eight_Orbits {
 				if (ActiveKeys.Count != 0)
 					return;
 
-				BotArena arena = new BotArena(5, BotArena.Type.MAX_POINTS); /// <   -	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
+				BotArena arena = new BotArena(7, BotArena.Type.MAX_POINTS); /// <   -	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
 
 				map = arena;
 				arena.AddBots(false);

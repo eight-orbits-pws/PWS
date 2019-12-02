@@ -412,9 +412,68 @@ namespace Neural_Network
 
 		public Neat Clone() {
             return new Neat(this);
-		}
+        }
 
-	}
+        public static List<byte> compile(Neat neat)
+        {
+            List<byte> bytes = new List<byte>();
+
+            bytes.AddRange(BitConverter.GetBytes(neat.innovation));
+            bytes.AddRange(BitConverter.GetBytes(neat.Genes.Count));
+
+            foreach (Gene gene in neat.Genes)
+            {
+                bytes.AddRange(BitConverter.GetBytes(gene.innovation));
+
+                bytes.Add((byte)(gene.enabled ? 1 : 0));
+
+                bytes.AddRange(BitConverter.GetBytes(gene.from));
+                bytes.AddRange(BitConverter.GetBytes(gene.axon.destination));
+                bytes.AddRange(BitConverter.GetBytes(gene.axon.weight));
+            }
+
+            return bytes;
+        }
+
+        private static byte[] remove(List<byte> list, int amount)
+        {
+            byte[] array = new byte[amount];
+            for (int i = 0; i < amount; i++)
+            {
+                array[i] = list[i];
+            }
+            list.RemoveRange(0, amount);
+            return array;
+        }
+
+        public static Neat decompile(List<byte> bytes)
+        {
+            Neat neat = new Neat();
+            neat.innovation = BitConverter.ToInt32(remove(bytes, 4), 0);
+
+            int max = 0;
+
+            int genes = BitConverter.ToInt32(remove(bytes, 4), 0);
+            for (int i = 0; i < genes; i++)
+            {
+                int num = BitConverter.ToInt32(remove(bytes, 4), 0);
+                bool enabled = remove(bytes, 1)[0] > 0;
+
+                int from = BitConverter.ToInt32(remove(bytes, 4), 0);
+                int to = BitConverter.ToInt32(remove(bytes, 4), 0);
+                double weight = BitConverter.ToDouble(remove(bytes, 8), 0);
+
+                neat.Genes.Add(new Gene(from, to, weight, enabled, num));
+
+                max = Max(max, Max(from, to));
+            }
+
+            neat.addNeurons(max);
+
+            return neat;
+        }
+
+    }
 
     struct Axon {
 
@@ -474,98 +533,6 @@ namespace Neural_Network
         public OutputNeuron Clone(Neat sender)
         {
             return new OutputNeuron(sender, index);
-        }
-
-        public static byte[] compile(Neat neat)
-        {
-            List<byte> bytes = new List<byte>();
-
-            byte[] innovation = BitConverter.GetBytes(neat.innovation);
-            bytes.Add(innovation[0]);
-            bytes.Add(innovation[1]);
-            bytes.Add(innovation[2]);
-            bytes.Add(innovation[3]);
-
-            byte[] genes = BitConverter.GetBytes(neat.Genes.Count);
-            bytes.Add(genes[0]);
-            bytes.Add(genes[1]);
-            bytes.Add(genes[2]);
-            bytes.Add(genes[3]);
-
-            foreach (Gene gene in neat.Genes)
-            {
-                byte[] num = BitConverter.GetBytes(gene.innovation);
-                bytes.Add(num[0]);
-                bytes.Add(num[1]);
-                bytes.Add(num[2]);
-                bytes.Add(num[3]);
-
-                bytes.Add((byte) (gene.enabled ? 1 : 0));
-
-                byte[] from = BitConverter.GetBytes(gene.from);
-                bytes.Add(from[0]);
-                bytes.Add(from[1]);
-                bytes.Add(from[2]);
-                bytes.Add(from[3]);
-
-                byte[] to = BitConverter.GetBytes(gene.axon.destination);
-                bytes.Add(to[0]);
-                bytes.Add(to[1]);
-                bytes.Add(to[2]);
-                bytes.Add(to[3]);
-
-                byte[] weight = BitConverter.GetBytes(gene.axon.weight);
-                bytes.Add(weight[0]);
-                bytes.Add(weight[1]);
-                bytes.Add(weight[2]);
-                bytes.Add(weight[3]);
-                bytes.Add(weight[4]);
-                bytes.Add(weight[5]);
-                bytes.Add(weight[6]);
-                bytes.Add(weight[7]);
-            }
-
-            return bytes.ToArray();
-        }
-
-        private static byte[] remove(List<byte> list, int amount)
-        {
-            byte[] array = new byte[amount];
-            for (int i = 0; i < amount; i++)
-            {
-                array[i] = list[i];
-            }
-            list.RemoveRange(0, amount);
-            return array;
-        }
-
-        public static Neat decompile(byte[] array)
-        {
-            List<byte> bytes = new List<byte>(array);
-
-            Neat neat = new Neat();
-            neat.innovation = BitConverter.ToInt32(remove(bytes, 4), 0);
-
-            int max = 0;
-
-            int genes = BitConverter.ToInt32(remove(bytes, 4), 0);
-            for (int i = 0; i < genes; i++)
-            {
-                int num = BitConverter.ToInt32(remove(bytes, 4), 0);
-                bool enabled = remove(bytes, 1)[0] > 0;
-
-                int from = BitConverter.ToInt32(remove(bytes, 4), 0);
-                int to = BitConverter.ToInt32(remove(bytes, 4), 0);
-                double weight = BitConverter.ToDouble(remove(bytes, 8), 0);
-
-                neat.Genes.Add(new Gene(from, to, weight, enabled, num));
-
-                max = Max(max, Max(from, to));
-            }
-
-            neat.addNeurons(max);
-
-            return neat;
         }
     }
 
