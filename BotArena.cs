@@ -4,6 +4,8 @@ using System.Windows.Forms;
 
 using Neural_Network;
 
+using System.IO;
+
 namespace Eight_Orbits
 {
 
@@ -20,6 +22,8 @@ namespace Eight_Orbits
         }
 
         public Type type;
+
+        public int generation = 0;
 
         public BotArena(Type type)
         {
@@ -38,6 +42,16 @@ namespace Eight_Orbits
             this.type = type;
         }
 
+        public byte[] GetGeneration()
+        {
+            return BitConverter.GetBytes(generation);
+        }
+
+        public void SetGeneration(List<byte> list)
+        {
+            generation = BitConverter.ToInt32(Neat.remove(list, 4), 0);
+        }
+
         public void AddBots(bool singleRound)
         {
             foreach (Neat bot in bots)
@@ -50,7 +64,7 @@ namespace Eight_Orbits
                 else
                     SetMaxPoints();
 
-                Program.HEADS[bot.Key].color = Entities.Head.GenerateColor();
+                Program.HEADS[bot.Key].color = bot.color.GetValueOrDefault(Entities.Head.GenerateColor());
             }
 
 			if (type == Type.CONTINUEOUS) {
@@ -153,6 +167,18 @@ namespace Eight_Orbits
 					for (int i = 2; i < bots.Count; i++)
                         if (Program.R.NextDouble() > (double) Program.HEADS[bots[i].Key].Points / MaxPoints) bots[i].FromParents(bots[i % 2], bots[- ((i % 2) - 1)]); // 0 or 1
                     break;
+            }
+
+            generation += 1;
+            if (generation % 10 == 0)
+            {
+                List<byte> bytes = new List<byte>();
+                bytes.AddRange(GetGeneration());
+                foreach (Neat bot in bots)
+                    bytes.AddRange(Neat.compile(bot));
+
+                Directory.CreateDirectory("backup");
+                File.WriteAllBytes("backup/gen" + generation + ".bot", bytes.ToArray());
             }
         }
 

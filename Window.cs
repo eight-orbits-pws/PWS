@@ -229,6 +229,7 @@ namespace Eight_Orbits {
                     if (map is BotArena)
                     {
                         List<byte> bytes = new List<byte>();
+                        bytes.AddRange(((BotArena)map).GetGeneration());
                         foreach (Neat bot in ((BotArena) map).bots)
                             bytes.AddRange(Neat.compile(bot));
 
@@ -252,6 +253,7 @@ namespace Eight_Orbits {
                             List<byte> bytes = new List<byte>(File.ReadAllBytes(dialog.FileName));
 
                             BotArena arena = new BotArena(BotArena.Type.MAX_POINTS);
+                            arena.SetGeneration(bytes);
                             map = arena;
 
                             while (bytes.Count > 0)

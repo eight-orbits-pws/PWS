@@ -60,6 +60,8 @@ namespace Neural_Network
 
         private int inactiveTicks = 0;
 
+        public Color? color = null;
+
         internal void ResetNeurons()
         {
             Reset?.Invoke();
@@ -418,6 +420,11 @@ namespace Neural_Network
         {
             List<byte> bytes = new List<byte>();
 
+            Color color = HEADS[neat.Key].color;
+            bytes.Add(color.R);
+            bytes.Add(color.G);
+            bytes.Add(color.B);
+
             bytes.AddRange(BitConverter.GetBytes(neat.innovation));
             bytes.AddRange(BitConverter.GetBytes(neat.Genes.Count));
 
@@ -435,7 +442,7 @@ namespace Neural_Network
             return bytes;
         }
 
-        private static byte[] remove(List<byte> list, int amount)
+        public static byte[] remove(List<byte> list, int amount)
         {
             byte[] array = new byte[amount];
             for (int i = 0; i < amount; i++)
@@ -449,6 +456,8 @@ namespace Neural_Network
         public static Neat decompile(List<byte> bytes)
         {
             Neat neat = new Neat();
+
+            neat.color = Color.FromArgb(remove(bytes, 1)[0], remove(bytes, 1)[0], remove(bytes, 1)[0]);
             neat.innovation = BitConverter.ToInt32(remove(bytes, 4), 0);
 
             int max = 0;
