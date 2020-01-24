@@ -69,7 +69,8 @@ namespace Eight_Orbits.Entities {
 			KeyCode = (Keys) new KeysConverter().ConvertFromString("F" + (bots+1));
 			tail  = new Tail(KeyCode);
 
-			if (bots < 10) DisplayKey = "B" + bots;
+			if (bots == 0) DisplayKey = "BT";
+			else if (bots < 10) DisplayKey = "B" + bots;
 			else DisplayKey = "B" + (char) (bots+55);
 
 			color_creation = color = Color.FromArgb(255, 0, 255, 255);
@@ -317,6 +318,7 @@ namespace Eight_Orbits.Entities {
         }
 
 		private static readonly object lock_reward = new {};
+        private string ghostkill => Died? "Ghostkill " : "";
 		public byte Reward(byte OrbId, Keys victim) {
 			byte temp;
 			lock (MVP.RecordsLock) {
@@ -339,11 +341,38 @@ namespace Eight_Orbits.Entities {
 					key.points = Points;
 
 					if (Orb.All[OrbId].KillStreak > 1) {
-						if (KingOfTheHill) MVP.Flash("Collateral!");
+						if (KingOfTheHill) {
+                            switch (Orb.All[OrbId].KillStreak) {
+                                case 2:
+                                    MVP.Flash($"{ghostkill}Collateral!");
+                                    break;
+                                case 3:
+                                    MVP.Flash($"{ghostkill}Triple Collateral!");
+                                    break;
+                                case 4:
+                                    MVP.Flash($"{ghostkill}Quadruple Collateral!");
+                                    break;
+                                case 5:
+                                    MVP.Flash($"{ghostkill}Quintuple Collateral!");
+                                    break;
+                                case 6:
+                                    MVP.Flash($"{ghostkill}Sextuple Collateral!");
+                                    break;
+                                case 7:
+                                    MVP.Flash($"{ghostkill}Septuple Collateral!");
+                                    break;
+                                case 8:
+                                    MVP.Flash($"{ghostkill}Octuple Collateral!");
+                                    break;
+                                default:
+                                    MVP.Flash($"{ghostkill}Insane Collateral!");
+                                    break;
+                            }
+                        }
 						else MVP.Add(MVPTypes.COLLATERAL, DisplayKey, Orb.All[OrbId].KillStreak.ToString());
 					}
 
-					if (Died) {
+					else if (Died) {
 						if (KingOfTheHill) MVP.Flash("GhostKill!");
 						else MVP.Add(MVPTypes.GHOSTKILL, DisplayKey);
 					}
@@ -367,7 +396,7 @@ namespace Eight_Orbits.Entities {
 				if (leader)
 					Leader = this.KeyCode;
 
-				if (this.Points >= Map.MaxPoints && Points - second > 1 && Map.phase != Phases.ENDGAME) {
+				if (this.Points >= Map.MaxPoints && Points - second > 2 && Map.phase != Phases.ENDGAME) {
 					MVP.Show(MVP.WinMessage(this.DisplayKey));
 					new Thread(Map.EndGame).Start();
 				}

@@ -250,6 +250,7 @@ namespace Neural_Network
                 if (inactiveTicks > ticks)
                 {
                     HEADS[Key].Die();
+                    HEADS[Key].Points--;
                 }
             }
 

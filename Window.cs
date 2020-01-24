@@ -68,16 +68,10 @@ namespace Eight_Orbits {
 				SZR = 1;
 				
 			}
-			MouseMove += new MouseEventHandler(this.Window_MouseMove);
+			//MouseMove += new MouseEventHandler(this.Window_MouseMove);
 			Resize += new EventHandler(on_resize);
 			KeyDown += new KeyEventHandler(window_keydown);
 			KeyUp += new KeyEventHandler(window_keyup);
-		}
-
-		private void Window_MouseMove(object sender, MouseEventArgs e) {
-			if (FullScreen) {
-				
-			}
 		}
 
 		private void on_resize(object sender, EventArgs e) {
@@ -159,18 +153,34 @@ namespace Eight_Orbits {
 				return;
 			} else if (e.KeyCode == Keys.F3) {
 				if (state == States.NEWGAME && Neat.All.Count < 24) {
-					Neat n = new Neat();
-					n.SetupGenZero();
-					n.AddKey();
+                    OpenFileDialog dialog = new OpenFileDialog();
+                    dialog.Filter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
+                    dialog.RestoreDirectory = true;
 
-					IKey.UpdateAll();
-					Map.SetMaxPoints();
+                    if (dialog.ShowDialog() == DialogResult.OK)
+                    {
+                        List<byte> bytes = new List<byte>(File.ReadAllBytes(dialog.FileName));
+						Neat.remove(bytes, 4);
+
+						Neat n = Neat.decompile(bytes);
+						n.SetupGenZero();
+						n.AddKey();
+
+						IKey.UpdateAll();
+						Map.SetMaxPoints();
+						
+						// Set color
+						Program.HEADS[n.Key].color = n.color.GetValueOrDefault(Entities.Head.GenerateColor());
+					}
 				}
 				return;
 			} else if (e.KeyCode == Keys.F1) {
 				if (state != States.NEWGAME) return;
-				if (ActiveKeys.Count > 0) new AI(ActiveKeys[ActiveKeys.Count - 1]);
-				MVP.Flash($"AI added to {HEADS[ActiveKeys[ActiveKeys.Count - 1]].DisplayKey}");
+				if (ActiveKeys.Count > 0) {
+					new AI(ActiveKeys[ActiveKeys.Count - 1]);
+					MVP.Flash($"AI added to {HEADS[ActiveKeys[ActiveKeys.Count - 1]].DisplayKey}");
+					HEADS[ActiveKeys[ActiveKeys.Count - 1]].DisplayKey = "AI";
+				}
 				return;
 			} else if (e.KeyCode == Keys.F4 && !e.Alt) {
 				if (state == States.NEWGAME) {
@@ -317,11 +327,17 @@ namespace Eight_Orbits {
 						break;
 
 					case Gamemodes.KING_OF_THE_HILL:
-						MVP.SetText("Yeet mode");
+						MVP.SetText("Hidden");
 						Map.MaxOrbs = 8;
-						Gamemode = Gamemodes.YEET_MODE;
+						Gamemode = Gamemodes.HIDDEN;
 						break;
 
+					case Gamemodes.HIDDEN:
+						MVP.SetText("Yeet Mode");
+						Gamemode = Gamemodes.YEET_MODE;
+						Map.blastSpawn = BlastSpawn.RARE;
+						break;
+					
 					case Gamemodes.YEET_MODE:
 						MVP.SetText("Classic");
 						Map.MaxOrbs = 255;
@@ -402,9 +418,16 @@ namespace Eight_Orbits {
 
 		public volatile object draw_lock = new { };
 		private volatile bool drawing = true;
+		private volatile int dframe = 0;
 		
 		public void DrawPaint(object sender, PaintEventArgs e) {
 			if (!drawing) return;
+
+			if (Hidden) {
+				if (Map.phase == Phases.NONE) dframe = dframe % 120 + 1;
+				else dframe = 0;
+			}
+
 			Graphics g = e.Graphics;
 			g.CompositingQuality = CompositingQuality.HighQuality;
 			g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -414,9 +437,9 @@ namespace Eight_Orbits {
 			g.ScaleTransform(scalar, scalar);
 			
 			try {
-				Map?.Draw(g);
+				if (dframe < 8) Map?.Draw(g);
 
-				DrawWhite?.Invoke(g);
+				if (dframe < 16) DrawWhite?.Invoke(g);
 				Blast.DrawAll(g);
 				DrawTail?.Invoke(g);
 				DrawBullet?.Invoke(g);

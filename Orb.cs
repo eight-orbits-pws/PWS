@@ -43,6 +43,8 @@ namespace Eight_Orbits.Entities {
 			this.v = IVector.Zero;
 			this.ID = (byte) All.Count;
 
+			if (Hidden) new Animation(pos, 12, 0, 0, r, r, color, color);
+
 			lock (OrbLock) All.Add(this);
 			Map.OnClearRemove += Remove;
 			OnUpdate += Update;

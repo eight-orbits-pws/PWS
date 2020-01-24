@@ -34,7 +34,7 @@ namespace Eight_Orbits.Properties {
 	}
 
 	public enum Gamemodes {
-		CLASSIC, CHAOS_RED, CHAOS_RAINBOW, KING_OF_THE_HILL, YEET_MODE
+		CLASSIC, CHAOS_RED, CHAOS_RAINBOW, KING_OF_THE_HILL, YEET_MODE, HIDDEN
 	}
 
 	public enum AnimationTypes {

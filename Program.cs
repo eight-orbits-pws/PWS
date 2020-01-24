@@ -17,7 +17,7 @@ namespace Eight_Orbits {
 		[STAThread]
 		public static void Main() {
 			//Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-
+            
 			World.Maps.Create();
 
 			map = new World();
@@ -26,7 +26,7 @@ namespace Eight_Orbits {
 					UpdateThread = new MyTimer(1000d / 120d, Update, "Update_Thread", false, ThreadPriority.AboveNormal);
 					NeuralThread = new MyTimer(1000d / 120d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
 					UpdateThread.Start();
-					NeuralThread.Start();
+					//NeuralThread.Start();
 				} else
 					window.StartAsyncUpdate();
 
@@ -38,7 +38,7 @@ namespace Eight_Orbits {
 
 				if (AnimationsEnabled) {
 					if (SyncUpdate) {
-						VisualThread = new MyTimer(1000d / 240d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
+						VisualThread = new MyTimer(1000d / 120d, window.Update_Visual, "Visual_Thread", false, ThreadPriority.Normal);
 						VisualThread.Start();
 					} else {
 						System.Timers.Timer timer = new System.Timers.Timer(1000d / 60d);
@@ -80,12 +80,13 @@ namespace Eight_Orbits {
 		public static volatile bool ForcePaused = false;
 		/// Disable to calcute as fast as possible.
 		/// Don't wait for timestamps
-		public static Gamemodes Gamemode = Gamemodes.KING_OF_THE_HILL;
+		public static Gamemodes Gamemode = Gamemodes.CLASSIC;
 		
 		public static bool KingOfTheHill => Gamemode == Gamemodes.KING_OF_THE_HILL;
 		public static bool YeetMode => Gamemode == Gamemodes.YEET_MODE;
 		public static bool ChaosMode => Gamemode == Gamemodes.CHAOS_RAINBOW || Gamemode == Gamemodes.CHAOS_RED;
 		public static bool Classic => Gamemode == Gamemodes.CLASSIC;
+		public static bool Hidden => Gamemode == Gamemodes.HIDDEN;
 		/// </summary>
 		
 		public static volatile bool FullScreen = true;
@@ -98,6 +99,12 @@ namespace Eight_Orbits {
 
 		public static World map;
 		public static World Map { get => TutorialActive ? TUTO : map; }
+
+        public class MyLock { 
+            public bool cancel = false;
+            public void force_cancel() { this.cancel = true; }
+            public void cancelled() {this.cancel = false;}
+        }
 
 		public static volatile bool TutorialActive = false;
 		public static Tutorial TUTO;
@@ -146,9 +153,10 @@ namespace Eight_Orbits {
 
 
 		public static void Update() {
+
 			byte iframe = 0;
 			do {
-				lock (updatinglocker) {
+				//lock (updatinglocker) {
 					frame++;
 					if (SlowMo) {
 						if (SpeedMo && frame % 3 != 0) return;
@@ -210,11 +218,14 @@ namespace Eight_Orbits {
 						AssistThread.Invoke();
 						check.Clear();
 					}
-				}
-
+				//}
+               
 				if (iframe++ == 1) return;
 			} while (SpeedMo);
+
 		}
+
+        static long temp = 0;
 
 		public static void TriggerSlowMo(int length) {
 			if (SlowMo) return;

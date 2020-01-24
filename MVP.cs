@@ -12,7 +12,7 @@ namespace Eight_Orbits {
 	class MVP {
 		private static readonly List<Stat> records = new List<Stat>();
 		public static readonly object RecordsLock = new { };
-		public static readonly object FlashLock = new { };
+		public static readonly MyLock FlashLock = new Program.MyLock();
 		private static Stat mvp = new Stat();
 
 		private static readonly Animatable Appear = new Animatable(0, 1, 36, AnimationTypes.SIN, true);
@@ -45,9 +45,10 @@ namespace Eight_Orbits {
 				int starttick = Tick;
 				Thread.CurrentThread.Name = "Flash_MVP";
 				Show();
-				SpinWait.SpinUntil(() => Tick >= starttick + 60 || !ApplicationRunning);
-				Hide();
-				SpinWait.SpinUntil(() => Tick >= starttick + 96 || !ApplicationRunning);
+				SpinWait.SpinUntil(() => Tick >= starttick + 60 || FlashLock.cancel || !ApplicationRunning);
+				if (!FlashLock.cancel) Hide();
+				SpinWait.SpinUntil(() => Tick >= starttick + 96 || FlashLock.cancel || !ApplicationRunning);
+                FlashLock.cancelled();
 			}
 		};
 
@@ -328,6 +329,8 @@ namespace Eight_Orbits {
 
 		public static string WinMessage(string hero) {
 			List<string> msg = new List<string>() {
+                $"Yeet!",
+                $"Kobe!",
 				$"{hero}!",
 				$"{hero} win!",
 				$"{hero} has won!",

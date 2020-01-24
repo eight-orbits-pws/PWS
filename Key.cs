@@ -39,7 +39,7 @@ namespace Eight_Orbits {
 		public byte points = 0;
 		public Keys owner = Keys.None;
 		readonly string DKey;
-		private bool pressed = false;
+		public bool pressed = false;
 		private bool dead = false;
 		//private Color color;
 		private Color transit = Color.Black;
