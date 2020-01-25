@@ -1,0 +1,9 @@
+C:\Users\sjoer\Documents\8_Orbits\bin\Debug\Eight Orbits.exe.config
+C:\Users\sjoer\Documents\8_Orbits\bin\Debug\Eight Orbits.exe
+C:\Users\sjoer\Documents\8_Orbits\bin\Debug\Eight Orbits.pdb
+C:\Users\sjoer\Documents\8_Orbits\obj\Debug\8_Orbits.csprojAssemblyReference.cache
+C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight_Orbits.Properties.Resources.resources
+C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight_Orbits.Window.resources
+C:\Users\sjoer\Documents\8_Orbits\obj\Debug\8_Orbits.csproj.GenerateResource.cache
+C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight Orbits.exe
+C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight Orbits.pdb
