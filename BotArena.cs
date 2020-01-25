@@ -23,7 +23,7 @@ namespace Eight_Orbits
 
         public Type type;
 
-        public int generation = 0;
+        public long generation = 0;
 
         public BotArena(Type type)
         {
@@ -170,7 +170,7 @@ namespace Eight_Orbits
             }
 
             generation += 1;
-            if (generation % 10 == 0)
+            if (true)
             {
                 List<byte> bytes = new List<byte>();
                 bytes.AddRange(GetGeneration());
@@ -178,7 +178,8 @@ namespace Eight_Orbits
                     bytes.AddRange(Neat.compile(bot));
 
                 Directory.CreateDirectory("backup");
-                File.WriteAllBytes("backup/gen" + generation + ".bot", bytes.ToArray());
+				if (File.Exists($"backup/gen{generation-25}.bot")) File.Delete($"backup/gen{generation-25}.bot");
+                File.WriteAllBytes($"backup/gen{generation}.bot", bytes.ToArray());
             }
         }
 
