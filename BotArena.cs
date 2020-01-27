@@ -49,7 +49,7 @@ namespace Eight_Orbits
 
         public void SetGeneration(List<byte> list)
         {
-            generation = BitConverter.ToInt32(Neat.remove(list, 4), 0);
+            generation = BitConverter.ToInt64(Neat.remove(list, 8), 0);
         }
 
         public void AddBots(bool singleRound)

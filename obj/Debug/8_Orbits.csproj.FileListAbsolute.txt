@@ -7,3 +7,12 @@ C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight_Orbits.Window.resources
 C:\Users\sjoer\Documents\8_Orbits\obj\Debug\8_Orbits.csproj.GenerateResource.cache
 C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight Orbits.exe
 C:\Users\sjoer\Documents\8_Orbits\obj\Debug\Eight Orbits.pdb
+C:\Users\Astavie\Documents\Code\PWS\bin\Debug\Eight Orbits.exe.config
+C:\Users\Astavie\Documents\Code\PWS\bin\Debug\Eight Orbits.exe
+C:\Users\Astavie\Documents\Code\PWS\bin\Debug\Eight Orbits.pdb
+C:\Users\Astavie\Documents\Code\PWS\obj\Debug\8_Orbits.csprojAssemblyReference.cache
+C:\Users\Astavie\Documents\Code\PWS\obj\Debug\Eight_Orbits.Properties.Resources.resources
+C:\Users\Astavie\Documents\Code\PWS\obj\Debug\Eight_Orbits.Window.resources
+C:\Users\Astavie\Documents\Code\PWS\obj\Debug\8_Orbits.csproj.GenerateResource.cache
+C:\Users\Astavie\Documents\Code\PWS\obj\Debug\Eight Orbits.exe
+C:\Users\Astavie\Documents\Code\PWS\obj\Debug\Eight Orbits.pdb

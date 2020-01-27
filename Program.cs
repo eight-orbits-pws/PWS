@@ -26,7 +26,7 @@ namespace Eight_Orbits {
 					UpdateThread = new MyTimer(1000d / 120d, Update, "Update_Thread", false, ThreadPriority.AboveNormal);
 					NeuralThread = new MyTimer(1000d / 120d, UpdateNeural, "Neural_Thread", false, ThreadPriority.Normal);
 					UpdateThread.Start();
-					//NeuralThread.Start();
+					NeuralThread.Start();
 				} else
 					window.StartAsyncUpdate();
 
