@@ -42,7 +42,10 @@ namespace Eight_Orbits
             this.type = type;
         }
 
-        public byte[] GetGeneration()
+		public override void SetMap() {
+		}
+
+		public byte[] GetGeneration()
         {
             return BitConverter.GetBytes(generation);
         }
@@ -154,7 +157,7 @@ namespace Eight_Orbits
             switch (type)
             {
                 case Type.MUTATIONS:
-                    foreach (Neat bot in bots)
+                    foreach (Neat bot in bots) 
                         bot.Mutate();
                     break;
                 case Type.MAX_POINTS:
@@ -178,8 +181,8 @@ namespace Eight_Orbits
                     bytes.AddRange(Neat.compile(bot));
 
                 Directory.CreateDirectory("backup");
-				if (File.Exists($"backup/gen{generation-25}.bot")) File.Delete($"backup/gen{generation-25}.bot");
                 File.WriteAllBytes($"backup/gen{generation}.bot", bytes.ToArray());
+				if (File.Exists($"backup/gen{generation-25}.bot")) File.Delete($"backup/gen{generation-25}.bot");
             }
         }
 

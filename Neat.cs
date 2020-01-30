@@ -41,7 +41,7 @@ namespace Neural_Network
 		public static List<Neat> All = new List<Neat>();
         bool lastOut = false;
 		
-		readonly object ThinkLock = new { };
+		static readonly object ThinkLock = new { };
         public List<InputNeuron> Input { get; } = new List<InputNeuron>(66);
         public List<StdNeuron> Neurons { get; }
         public OutputNeuron Output { get; set; }

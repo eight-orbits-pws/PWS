@@ -160,7 +160,7 @@ namespace Eight_Orbits {
                     if (dialog.ShowDialog() == DialogResult.OK)
                     {
                         List<byte> bytes = new List<byte>(File.ReadAllBytes(dialog.FileName));
-						Neat.remove(bytes, 4);
+						Neat.remove(bytes, 8);
 
 						Neat n = Neat.decompile(bytes);
 						n.SetupGenZero();

@@ -109,7 +109,7 @@ namespace Eight_Orbits {
 			lock (updatinglocker) {
 				start_round();
 				step = 0;
-				Clear();
+				base.Clear();
 				world.Clear();
 				revive();
 				world.revive();
