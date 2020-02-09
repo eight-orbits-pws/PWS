@@ -47,6 +47,7 @@ namespace Eight_Orbits {
 		}
 		
 		public virtual void SetMap() {
+			return;
 			HashSet<Orbit> temp;
 			do {
 				temp = Maps.Random;

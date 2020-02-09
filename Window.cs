@@ -254,7 +254,8 @@ namespace Eight_Orbits {
                     }
                     else if (ActiveKeys.Count == 0)
                     {
-                        OpenFileDialog dialog = new OpenFileDialog();
+                        Cursor.Show();
+						OpenFileDialog dialog = new OpenFileDialog();
                         dialog.Filter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
                         dialog.RestoreDirectory = true;
 
@@ -277,6 +278,7 @@ namespace Eight_Orbits {
                             Ingame = true;
                             state = States.INGAME;
                         }
+						if (FullScreen) Cursor.Hide();
                     }
                 } else if (state == States.NEWGAME && !TutorialActive) {
 					if (ActiveKeys.Count != 1)
